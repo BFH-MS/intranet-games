@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Christmas memory game</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Mountains+of+Christmas:wght@400;700&display=swap');
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Mountains of Christmas', cursive;
+        }
+
+        body {
+            background: url('https://images.pexels.com/photos/2403402/pexels-photo-2403402.jpeg') no-repeat center center/cover;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            min-height: 100vh;
+            color: #ffffff;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+            color: #ffeaa7;
+            text-shadow: 2px 2px #d63031;
+        }
+
+        .scoreboard {
+            font-size: 1.2em;
+            margin-bottom: 5px;
+            color: #ff7675;
+            font-weight: bold;
+        }
+
+        .timer {
+            font-size: 1.2em;
+            color: #fbc531;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .container {
+            text-align: center;
+            display: none;
+            max-width: 100%;
+            padding: 10px;
+        }
+
+        .memory-game {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            max-width: 600px;
+            margin: 0 auto;
+            gap: 5px;
+        }
+
+        .memory-card {
+            width: 100px;
+            height: 100px;
+            margin: 4px;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.5s ease;
+            border: 2px solid gold;
+            border-radius: 10px;
+            background-color: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            cursor: pointer;
+            outline: none;
+        }
+
+        .memory-card.flip {
+            transform: rotateY(180deg);
+            pointer-events: none;
+        }
+
+        .memory-card img {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            backface-visibility: hidden;
+            border-radius: 8px;
+            object-fit: cover;
+        }
+
+        .front-face {
+            transform: rotateY(180deg);
+        }
+
+        .back-face {
+            background-color: #f8f3f4;
+            background-image: url('https://png.pngtree.com/png-vector/20230907/ourmid/pngtree-christmas-tree-clipart-png-image_10013507.png');
+            background-size: cover;
+        }
+
+        .start-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            color: #fff;
+            text-align: center;
+            z-index: 100;
+        }
+
+        .start-screen h2 {
+            font-size: 2em;
+            margin-bottom: 15px;
+            padding: 0 20px;
+        }
+
+        .start-screen p {
+            font-size: 1.2em;
+            margin-bottom: 20px;
+        }
+
+        .start-btn {
+            padding: 12px 25px;
+            font-size: 1.1em;
+            background-color: #ff7675;
+            border: none;
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 5px;
+            transition: background-color 0.3s;
+        }
+
+        .start-btn:hover {
+            background-color: #e17055;
+        }
+
+        .win-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            color: #ffeaa7;
+            text-align: center;
+            font-size: 1.5em;
+            z-index: 100;
+        }
+
+        .win-screen h2 {
+            font-size: 2em;
+            margin-bottom: 15px;
+        }
+
+        .win-screen p {
+            font-size: 1.2em;
+            margin-bottom: 15px;
+        }
+
+        .win-screen button {
+            padding: 12px 25px;
+            font-size: 1.2em;
+            background-color: #ff7675;
+            border: none;
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .win-screen button:hover {
+            background-color: #e17055;
+        }
+
+        @media (max-height: 600px) {
+            .memory-card {
+                width: 80px;
+                height: 80px;
+                margin: 3px;
+            }
+
+            h1 {
+                font-size: 1.8em;
+                margin-bottom: 5px;
+            }
+
+            .start-screen h2 {
+                font-size: 1.5em;
+            }
+
+            .win-screen {
+                font-size: 1.2em;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .memory-card {
+                width: 70px;
+                height: 70px;
+                margin: 2px;
+            }
+
+            .start-btn {
+                padding: 10px 20px;
+                font-size: 1em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="start-screen">
+        <h2>🎅 Welcome to the Christmas memory game! 🎄</h2>
+        <p>Choose a difficulty level:</p>
+        <button class="start-btn" onclick="startGame('leicht')">Easy (4 pairs)</button>
+        <button class="start-btn" onclick="startGame('mittel')">Medium (6 pairs)</button>
+        <button class="start-btn" onclick="startGame('schwer')">Hard (8 pairs)</button>
+    </div>
+
+    <div class="win-screen" id="win-screen">
+        <h2>Congratulations! 🎉</h2>
+        <p>You have found all the card pairs!</p>
+        <p>Score: <span id="final-score">0</span></p>
+        <p>Time required: <span id="final-time">0s</span></p>
+        <button onclick="location.reload()">Play again</button>
+    </div>
+
+    <div class="container">
+        <h1>🎄 Christmas memory game 🎅</h1>
+        <div class="scoreboard">Score: <span id="score">0</span></div>
+        <div class="timer">Time: <span id="timer">0s</span></div>
+        <div class="memory-game" id="memory-game"></div>
+    </div>
+
+    <script>
+        const cardImages = [
+            { name: 'santa', img: 'https://i.imgur.com/40URgbp.png' },
+            { name: 'tree', img: 'https://i.imgur.com/bahKS9v.png' },
+            { name: 'gift', img: 'https://i.imgur.com/u6Tmzxa.png' },
+            { name: 'snowman', img: 'https://i.imgur.com/OkQkmVb.png' },
+            { name: 'elf', img: 'https://i.imgur.com/JgdOyvu.png' },
+            { name: 'reindeer', img: 'https://i.imgur.com/Eo1uNg6.png' },
+            { name: 'candy', img: 'https://i.imgur.com/KQR4whb.png' },
+            { name: 'stocking', img: 'https://i.imgur.com/4zdgWVn.png' }
+        ];
+
+        let score = 0;
+        let matchedPairs = 0;
+        let hasFlippedCard = false;
+        let lockBoard = false;
+        let firstCard, secondCard;
+        let startTime, timerInterval;
+
+        const DIFFICULTY_MULTIPLIER = {
+            'leicht': 1,
+            'mittel': 1.5,
+            'schwer': 2
+        };
+        
+        const TIME_BONUS_THRESHOLD = {
+            'leicht': 30,  // seconds
+            'mittel': 45,
+            'schwer': 60
+        };
+
+        let currentDifficulty = '';
+        
+        function startGame(difficulty) {
+            document.querySelector('.start-screen').style.display = 'none';
+            document.querySelector('.container').style.display = 'block';
+            currentDifficulty = difficulty;  // Store the current difficulty
+
+            let numPairs;
+            if (difficulty === 'leicht') numPairs = 4;
+            else if (difficulty === 'mittel') numPairs = 6;
+            else numPairs = 8;
+
+            createCards(numPairs);
+            startTimer();
+        }
+
+        function createCards(numPairs) {
+            const gameBoard = document.getElementById('memory-game');
+            gameBoard.innerHTML = '';
+
+            let selectedImages = cardImages.slice(0, numPairs);
+            let cards = [...selectedImages, ...selectedImages];
+            cards.sort(() => 0.5 - Math.random());
+
+            cards.forEach(card => {
+                const memoryCard = document.createElement('div');
+                memoryCard.classList.add('memory-card');
+                memoryCard.dataset.card = card.name;
+
+                memoryCard.innerHTML = `
+                    <img class="front-face" src="${card.img}" alt="${card.name}">
+                    <img class="back-face" src="https://png.pngtree.com/png-vector/20230907/ourmid/pngtree-christmas-tree-clipart-png-image_10013507.png" alt="Weihnachten">
+                `;
+                memoryCard.addEventListener('click', flipCard);
+                gameBoard.appendChild(memoryCard);
+            });
+        }
+
+        function startTimer() {
+            startTime = Date.now();
+            timerInterval = setInterval(() => {
+                const elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
+                document.getElementById('timer').innerText = `${elapsedSeconds}s`;
+            }, 1000);
+        }
+
+        function stopTimer() {
+            clearInterval(timerInterval);
+        }
+
+        function flipCard() {
+            if (lockBoard) return;
+            if (this === firstCard) return;
+
+            this.classList.add('flip');
+
+            if (!hasFlippedCard) {
+                hasFlippedCard = true;
+                firstCard = this;
+                return;
+            }
+
+            secondCard = this;
+            lockBoard = true;
+            checkForMatch();
+        }
+
+        function checkForMatch() {
+            let isMatch = firstCard.dataset.card === secondCard.dataset.card;
+            isMatch ? disableCards() : unflipCards();
+        }
+
+        function disableCards() {
+            firstCard.removeEventListener('click', flipCard);
+            secondCard.removeEventListener('click', flipCard);
+
+            matchedPairs++;
+            // Update the displayed score in real-time
+            const currentTime = Math.floor((Date.now() - startTime) / 1000);
+            const currentScore = calculateScore(matchedPairs, currentTime);
+            document.getElementById('score').innerText = currentScore;
+
+            resetBoard();
+
+            if (matchedPairs === document.querySelectorAll('.memory-card').length / 2) {
+                setTimeout(showWinScreen, 500);
+            }
+        }
+
+        function unflipCards() {
+            setTimeout(() => {
+                firstCard.classList.remove('flip');
+                secondCard.classList.remove('flip');
+                resetBoard();
+            }, 1500);
+        }
+
+        function resetBoard() {
+            [hasFlippedCard, lockBoard] = [false, false];
+            [firstCard, secondCard] = [null, null];
+        }
+
+        function calculateScore(matchedPairs, timeElapsed) {
+            // Base score from matched pairs (100 points per pair)
+            let baseScore = matchedPairs * 100;
+            
+            // Time bonus
+            const timeThreshold = TIME_BONUS_THRESHOLD[currentDifficulty];
+            let timeBonus = 0;
+            
+            if (timeElapsed < timeThreshold) {
+                // More bonus for faster completion
+                timeBonus = Math.floor((timeThreshold - timeElapsed) * 10);
+            }
+            
+            // Apply difficulty multiplier
+            const totalScore = Math.floor((baseScore + timeBonus) * DIFFICULTY_MULTIPLIER[currentDifficulty]);
+            
+            return totalScore;
+        }
+
+        function showWinScreen() {
+            stopTimer();
+            const finalTime = Math.floor((Date.now() - startTime) / 1000);
+            const finalScore = calculateScore(matchedPairs, finalTime);
+            
+            document.getElementById('final-score').innerText = finalScore;
+            document.getElementById('final-time').innerText = `${finalTime}s`;
+            document.querySelector('.win-screen').style.display = 'flex';
+
+            // Send score to parent window (SharePoint web part)
+            try {
+                window.parent.postMessage({
+                    score: finalScore,
+                    time: finalTime,
+                    difficulty: currentDifficulty
+                }, '*');
+            } catch (error) {
+                console.error('Error sending score:', error);
+            }
+        }
+    </script>
+</body>
+</html> 

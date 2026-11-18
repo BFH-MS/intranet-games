@@ -1,0 +1,816 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Flappy BFH</title>
+  <style>
+    :root {
+      --bg: #70c5ce;   /* Himmel */
+      --ground: #ffffff;/* Boden */
+      --pipe: #2ecc708f; /* Röhren */
+      --pipe-dark: #27ae60;
+      --bird: #0f9ef1; /* Vogel */
+      --bird-outline: #d35400;
+      --text: #ffffff;
+    }
+
+    html, body {
+      height: 100%;
+      margin: 0;
+      background: radial-gradient(circle at 50% 0%, #9ae8f5 0%, var(--bg) 60%);
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      user-select: none;
+      -webkit-user-select: none;
+      -ms-user-select: none;
+      color: var(--text);
+    }
+
+    .wrap {
+      height: 100%;
+      display: grid;
+      place-items: center;
+      gap: .75rem;
+    }
+
+    canvas {
+      box-shadow: 0 18px 40px rgba(0,0,0,.25);
+      border-radius: 16px;
+      background: linear-gradient(#9ae8f5 0%, var(--bg) 70%);
+      touch-action: manipulation;
+    }
+
+    .hud {
+      display: flex;
+      gap: .75rem;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: center;
+      font-weight: 700;
+    }
+
+    .btn {
+      background: rgba(0,0,0,.25);
+      padding: .5rem .9rem;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: .2s transform ease, .2s background ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+      background: rgba(0,0,0,.35);
+    }
+
+    .kbd {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      background: rgba(255,255,255,.2);
+      padding: .15rem .4rem;
+      border-radius: 6px;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <!-- Sichtbare Spielfläche jetzt ca. 480×640 -->
+    <canvas id="game" width="480" height="640" aria-label="Flappy Bird Canvas"></canvas>
+
+    <div class="hud">
+      <span>Steuerung: <span class="kbd">Leertaste</span> / Klick / Tap</span>
+      <span class="btn" id="btnStart">Start</span>
+      <span class="btn" id="btnPause">Pause</span>
+      <span class="btn" id="btnReset">Reset</span>
+    </div>
+  </div>
+
+  <script>
+    // --- Konfiguration des Bilds ---
+    const CFG = {
+      width: 480,
+      height: 640,
+      gravity: 0.5,
+      jump: -7.0,
+      pipeGap: 180,
+      pipeWidth: 110,
+      pipeInterval: 2000,
+      pipeSpeed: 2.6,
+      groundHeight: 80,
+      maxFall: 12,
+      hitForgiveness: 2
+    };
+
+    // --- Canvas Setup ---
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+
+    function fitCanvasToDPR() {
+      const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+      canvas.style.width = CFG.width + 'px';
+      canvas.style.height = CFG.height + 'px';
+      canvas.width = Math.floor(CFG.width * dpr);
+      canvas.height = Math.floor(CFG.height * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    fitCanvasToDPR();
+    addEventListener('resize', fitCanvasToDPR);
+
+    // --- Game State ---
+    const State = {
+      Idle: 'idle',
+      Running: 'running',
+      Paused: 'paused',
+      GameOver: 'gameover'
+    };
+
+    let pipes = [];
+    let pipeCount = 0;
+    let lastPipeTime = 0;
+    let score = 0;
+    let best = +localStorage.getItem('flappy_best') || 0;
+    let state = State.Idle;
+
+    const bird = {
+      x: 100,
+      y: CFG.height / 2,
+      vy: 0,
+      r: 16
+    };
+
+    const SNOW_COUNT = 80;
+    const GIFT_COUNT = 30;
+    const snowflakes = Array.from({ length: SNOW_COUNT }, createSnowflake);
+    const gifts = Array.from({ length: GIFT_COUNT }, createGift);
+
+    // --- Helper / Effects ---
+    function rand(min, max) {
+      return Math.random() * (max - min) + min;
+    }
+
+    function createSnowflake() {
+      return {
+        x: Math.random() * CFG.width,
+        y: Math.random() * CFG.height,
+        r: rand(1.4, 3.4),
+        vy: rand(0.45, 1.6),
+        drift: rand(-0.25, 0.25)
+      };
+    }
+
+    function createGift() {
+      const giftColors = ['#e74c3c', '#2ecc71', '#f1c40f', '#9b59b6', '#3498db'];
+      const color = giftColors[Math.floor(Math.random() * giftColors.length)];
+      return {
+        x: Math.random() * CFG.width,
+        y: Math.random() * CFG.height,
+        size: rand(10, 16),
+        vy: rand(0.55, 1.25),
+        drift: rand(-0.35, 0.35),
+        color
+      };
+    }
+
+    function updateSnow(dt) {
+      for (const flake of snowflakes) {
+        flake.y += flake.vy * dt * 0.06;
+        flake.x += flake.drift * dt * 0.04;
+        if (flake.y > CFG.height) {
+          flake.y = -10;
+          flake.x = Math.random() * CFG.width;
+        }
+        if (flake.x < -12) flake.x = CFG.width + 8;
+        if (flake.x > CFG.width + 12) flake.x = -8;
+      }
+    }
+
+    function updateGifts(dt) {
+      for (const gift of gifts) {
+        gift.y += gift.vy * dt * 0.06;
+        gift.x += gift.drift * dt * 0.04;
+        if (gift.y > CFG.height + gift.size) {
+          gift.y = -10;
+          gift.x = Math.random() * CFG.width;
+        }
+        if (gift.x < -12) gift.x = CFG.width + 8;
+        if (gift.x > CFG.width + 12) gift.x = -8;
+      }
+    }
+
+    // --- Reset ---
+    function resetGame() {
+      pipes = [];
+      pipeCount = 0;
+      lastPipeTime = 0;
+      score = 0;
+      bird.x = 100;
+      bird.y = CFG.height / 2;
+      bird.vy = 0;
+      state = State.Idle;
+    }
+
+    // --- Input ---
+    function flap() {
+      if (state === State.Idle) state = State.Running;
+      if (state === State.Running) {
+        bird.vy = CFG.jump;
+      } else if (state === State.GameOver) {
+        resetGame();
+      }
+    }
+
+    function togglePause() {
+      if (state === State.Running) {
+        state = State.Paused;
+      } else if (state === State.Paused) {
+        state = State.Running;
+      }
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.code === 'Space' || e.code === 'ArrowUp') {
+        e.preventDefault();
+        flap();
+      }
+      if (e.code === 'KeyP') togglePause();
+      if (e.code === 'KeyR') resetGame();
+    });
+
+    canvas.addEventListener('pointerdown', flap);
+    document.getElementById('btnStart').onclick = () => {
+      if (state !== State.Running) state = State.Running;
+    };
+    document.getElementById('btnPause').onclick = () => togglePause();
+    document.getElementById('btnReset').onclick = () => resetGame();
+
+    let lastTap = 0;
+    canvas.addEventListener('touchend', () => {
+      const t = Date.now();
+      if (t - lastTap < 300) { /* double tap ungenutzt */ }
+      lastTap = t;
+    }, { passive: true });
+
+    // --- Pipes ---
+    function spawnPipePair() {
+      const minTop = 60;
+      const maxTop = CFG.height - CFG.groundHeight - CFG.pipeGap - 60;
+      const topHeight = Math.floor(rand(minTop, maxTop));
+      const bottomY = topHeight + CFG.pipeGap;
+      const pipe = {
+        x: CFG.width + 20,
+        top: { y: 0, h: topHeight },
+        bottom: { y: bottomY, h: CFG.height - CFG.groundHeight - bottomY },
+        scored: false,
+        candy: (++pipeCount % 10 === 0)
+      };
+      pipes.push(pipe);
+    }
+
+    // --- Drawing ---
+    function drawBackground() {
+      // Schneeflocken
+      ctx.save();
+      ctx.fillStyle = 'rgba(255,255,255,0.85)';
+      for (const flake of snowflakes) {
+        ctx.beginPath();
+        ctx.arc(flake.x, flake.y, flake.r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      // schwebende Geschenke
+      for (const gift of gifts) {
+        drawGift(gift);
+      }
+      ctx.restore();
+
+      // Wolken
+      ctx.save();
+      ctx.globalAlpha = 0.6;
+      for (let i = 0; i < 5; i++) {
+        const cx = (i * 120 + (Date.now() / 20) % 1200) % (CFG.width + 200) - 100;
+        const cy = 90 + (i % 3) * 35;
+        drawCloud(cx, cy, 28 + (i % 3) * 6);
+      }
+      ctx.restore();
+
+      // Boden-Schatten
+      ctx.fillStyle = 'rgba(0,0,0,.12)';
+      ctx.fillRect(0, CFG.height - CFG.groundHeight - 6, CFG.width, 6);
+
+      // Boden
+      ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--ground');
+      ctx.fillRect(0, CFG.height - CFG.groundHeight, CFG.width, CFG.groundHeight);
+
+      // Deko-Elemente – jetzt relativ positioniert, damit sie auch bei 480px breit sauber sitzen
+      drawSnowman(CFG.width * 0.18, CFG.height - CFG.groundHeight, 60);
+      drawGoldenSnowflake(CFG.width * 0.48, CFG.height - CFG.groundHeight, 60);
+      drawSantaSleigh(CFG.width * 0.78, CFG.height - CFG.groundHeight, 60);
+      drawGiftPile(CFG.width * 0.9, CFG.height - CFG.groundHeight, 60);
+
+      // Bodenstruktur
+      ctx.fillStyle = 'rgba(0,0,0,.08)';
+      for (let x = 0; x < CFG.width; x += 28) {
+        ctx.fillRect(x, CFG.height - CFG.groundHeight + 30, 18, 10);
+      }
+    }
+
+    function drawCloud(x, y, r) {
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.arc(x + 25, y + 5, r * 0.9, 0, Math.PI * 2);
+      ctx.arc(x - 25, y + 10, r * 0.8, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255,255,255,.9)';
+      ctx.fill();
+    }
+
+    function drawGift(gift) {
+      ctx.save();
+      ctx.translate(gift.x, gift.y);
+
+      const s = gift.size;
+      const half = s / 2;
+
+      ctx.fillStyle = gift.color;
+      ctx.fillRect(-half, -half, s, s);
+
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(-half, -s * 0.08, s, s * 0.16);
+      ctx.fillRect(-s * 0.08, -half, s * 0.16, s);
+
+      ctx.beginPath();
+      ctx.fillStyle = '#f9e79f';
+      ctx.arc(0, -half, s * 0.18, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.restore();
+    }
+
+    function drawGoldenSnowflake(x, groundY, size = 60) {
+      ctx.save();
+      ctx.translate(x, groundY);
+
+      const r = size * 0.5;
+      const centerY = -r;
+      const thickness = size * 0.05;
+      const baseAngle = -Math.PI / 2;
+
+      ctx.strokeStyle = '#f1c40f';
+      ctx.lineWidth = thickness;
+      ctx.lineCap = 'round';
+      ctx.fillStyle = '#f7dc6f';
+
+      for (let i = 0; i < 6; i++) {
+        const a = baseAngle + (Math.PI / 3) * i;
+        const ax = Math.cos(a) * r;
+        const ay = centerY + Math.sin(a) * r;
+
+        ctx.beginPath();
+        ctx.moveTo(0, centerY);
+        ctx.lineTo(ax, ay);
+        ctx.stroke();
+
+        const mid = r * 0.55;
+        const sx = Math.cos(a) * mid;
+        const sy = centerY + Math.sin(a) * mid;
+        const branch = r * 0.18;
+        const offset = Math.PI / 6;
+
+        ctx.beginPath();
+        ctx.moveTo(sx, sy);
+        ctx.lineTo(sx + Math.cos(a - offset) * branch, sy + Math.sin(a - offset) * branch);
+        ctx.moveTo(sx, sy);
+        ctx.lineTo(sx + Math.cos(a + offset) * branch, sy + Math.sin(a + offset) * branch);
+        ctx.stroke();
+      }
+
+      ctx.beginPath();
+      ctx.arc(0, centerY, thickness * 1.6, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.restore();
+    }
+
+    function drawSnowman(x, groundY, size = 60) {
+      ctx.save();
+      ctx.translate(x, groundY);
+
+      const baseRadius = size * 0.35;
+      const midRadius = size * 0.25;
+      const headRadius = size * 0.18;
+
+      const baseY = -baseRadius;
+      const midY = baseY - baseRadius - midRadius + 4;
+      const headY = midY - midRadius - headRadius + 2;
+
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      ctx.arc(0, baseY, baseRadius, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.arc(0, midY, midRadius, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.arc(0, headY, headRadius, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#111';
+      ctx.beginPath();
+      ctx.arc(-headRadius * 0.4, headY - headRadius * 0.2, headRadius * 0.18, 0, Math.PI * 2);
+      ctx.arc(headRadius * 0.4, headY - headRadius * 0.2, headRadius * 0.18, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#e67e22';
+      ctx.beginPath();
+      ctx.moveTo(0, headY);
+      ctx.lineTo(headRadius * 1.2, headY + headRadius * 0.15);
+      ctx.lineTo(0, headY + headRadius * 0.2);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.fillStyle = '#111';
+      for (let i = -1; i <= 1; i++) {
+        ctx.beginPath();
+        ctx.arc(0, midY + i * midRadius * 0.6, midRadius * 0.15, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ctx.restore();
+    }
+
+    function drawGiftPile(x, groundY, size = 60) {
+      ctx.save();
+      ctx.translate(x, groundY);
+
+      const baseSize = size * 0.5;
+
+      const stack = [
+        { x: -baseSize * 0.6, y: 0, s: baseSize * 0.6, c: '#e74c3c' },
+        { x: baseSize * 0.05, y: -baseSize * 0.1, s: baseSize * 0.65, c: '#2ecc71' },
+        { x: -baseSize * 0.2, y: -baseSize * 0.8, s: baseSize * 0.5, c: '#f1c40f' },
+        { x: baseSize * 0.35, y: -baseSize * 0.95, s: baseSize * 0.45, c: '#9b59b6' },
+        { x: -baseSize * 0.65, y: -baseSize, s: baseSize * 0.4, c: '#3498db' }
+      ];
+
+      for (const gift of stack) {
+        ctx.save();
+        ctx.translate(gift.x, gift.y);
+        const s = gift.s;
+        const half = s / 2;
+
+        ctx.fillStyle = gift.c;
+        ctx.fillRect(-half, -s, s, s);
+
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(-half, -s * 0.55, s, s * 0.15);
+        ctx.fillRect(-s * 0.08, -s, s * 0.16, s);
+
+        ctx.beginPath();
+        ctx.fillStyle = '#f9e79f';
+        ctx.arc(0, -s, s * 0.18, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+      }
+
+      ctx.restore();
+    }
+
+    function drawSantaSleigh(x, groundY, size = 60) {
+      ctx.save();
+      ctx.translate(x, groundY);
+
+      const sleighLength = size * 1.6;
+      const sleighHeight = size * 0.24;
+      const runnerY = -size * 0.05;
+
+      // Runners
+      ctx.strokeStyle = '#8d5524';
+      ctx.lineWidth = size * 0.06;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(-sleighLength * 0.55, runnerY);
+      ctx.quadraticCurveTo(-sleighLength * 0.35, runnerY + size * 0.12, -sleighLength * 0.1, runnerY + size * 0.1);
+      ctx.lineTo(sleighLength * 0.55, runnerY + size * 0.1);
+      ctx.stroke();
+
+      // Sleigh body
+      ctx.fillStyle = '#c0392b';
+      ctx.fillRect(-sleighLength * 0.5, runnerY - sleighHeight, sleighLength * 0.9, sleighHeight);
+      ctx.fillRect(-sleighLength * 0.2, runnerY - sleighHeight * 1.8, sleighLength * 0.45, sleighHeight * 1.8);
+      ctx.fillStyle = '#922b21';
+      ctx.fillRect(-sleighLength * 0.5, runnerY - sleighHeight + 2, sleighLength * 0.9, 6);
+
+      // Gifts
+      ctx.fillStyle = '#27ae60';
+      ctx.fillRect(-sleighLength * 0.4, runnerY - sleighHeight * 2.4, sleighLength * 0.18, sleighHeight * 1);
+      ctx.fillStyle = '#f1c40f';
+      ctx.fillRect(-sleighLength * 0.15, runnerY - sleighHeight * 2.1, sleighLength * 0.14, sleighHeight * 0.9);
+
+      // Santa
+      const bodyRadius = size * 0.2;
+      const headRadius = size * 0.12;
+      const bodyY = runnerY - sleighHeight * 1.6 - bodyRadius;
+      const headY = bodyY - bodyRadius - headRadius + 2;
+
+      ctx.fillStyle = '#c0392b';
+      ctx.beginPath();
+      ctx.arc(sleighLength * 0.15, bodyY, bodyRadius, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#f5cba7';
+      ctx.beginPath();
+      ctx.arc(sleighLength * 0.18, headY, headRadius, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Hat
+      ctx.fillStyle = '#c0392b';
+      ctx.beginPath();
+      ctx.moveTo(sleighLength * 0.07, headY - headRadius * 0.2);
+      ctx.lineTo(sleighLength * 0.18, headY - headRadius * 1.5);
+      ctx.lineTo(sleighLength * 0.29, headY - headRadius * 0.2);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      ctx.arc(sleighLength * 0.18, headY - headRadius * 1.5, headRadius * 0.35, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Beard
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      ctx.arc(sleighLength * 0.18, headY + headRadius * 0.4, headRadius * 0.8, Math.PI * 0.1, Math.PI * 0.9);
+      ctx.fill();
+
+      // Belt
+      ctx.fillStyle = '#111';
+      ctx.fillRect(sleighLength * 0.15 - bodyRadius, bodyY - bodyRadius * 0.25, bodyRadius * 2, bodyRadius * 0.35);
+      ctx.fillStyle = '#f1c40f';
+      ctx.fillRect(sleighLength * 0.15 - bodyRadius * 0.25, bodyY - bodyRadius * 0.25, bodyRadius * 0.5, bodyRadius * 0.35);
+
+      ctx.restore();
+    }
+
+    function drawBird() {
+      ctx.save();
+      const angle = Math.max(-0.4, Math.min(0.6, bird.vy / 10));
+      ctx.translate(bird.x, bird.y);
+      ctx.rotate(angle);
+
+      const birdColor = getComputedStyle(document.documentElement).getPropertyValue('--bird');
+      const birdOutline = getComputedStyle(document.documentElement).getPropertyValue('--bird-outline');
+
+      ctx.fillStyle = birdColor;
+      ctx.strokeStyle = birdOutline;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(0, 0, bird.r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      // Schneepunkte im Gesicht
+      ctx.beginPath();
+      ctx.fillStyle = '#fff';
+      ctx.arc(-7, -10, 4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.fillStyle = '#fff';
+      ctx.arc(5, 3, 2, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Auge
+      ctx.beginPath();
+      ctx.fillStyle = '#fff';
+      ctx.arc(6, -5, 5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.fillStyle = '#111';
+      ctx.arc(7, -5, 2, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Schnabel
+      ctx.beginPath();
+      ctx.fillStyle = '#e67e22';
+      ctx.moveTo(bird.r - 2, 0);
+      ctx.lineTo(bird.r + 10, -4);
+      ctx.lineTo(bird.r + 10, 4);
+      ctx.closePath();
+      ctx.fill();
+
+      // Flügel
+      const flapY = Math.sin(Date.now() / 80) * 4;
+      ctx.beginPath();
+      ctx.fillStyle = '#f7dc6f';
+      ctx.ellipse(-6, flapY, 10, 6, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.restore();
+    }
+
+    function drawPipes() {
+      for (const p of pipes) {
+        drawPipeSegment(p.x, 0, CFG.pipeWidth, p.top.h, p.candy);
+        drawPipeSegment(p.x, p.bottom.y, CFG.pipeWidth, p.bottom.h, p.candy);
+      }
+    }
+
+    function drawPipeSegment(x, y, w, h, isCandy = false) {
+      if (isCandy) {
+        drawCandyPipe(x, y, w, h);
+        return;
+      }
+
+      const pipe = getComputedStyle(document.documentElement).getPropertyValue('--pipe');
+      const dark = getComputedStyle(document.documentElement).getPropertyValue('--pipe-dark');
+
+      ctx.fillStyle = pipe;
+      ctx.fillRect(x, y, w, h);
+
+      // Schnee-Flecken
+      ctx.fillStyle = "#FFFFFF";
+      ctx.beginPath();
+      ctx.arc(x + w * 0.25, y + h * 0.3, 6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(x + w * 0.6, y + h * 0.5, 8, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(x + w * 0.7, y + h * 0.8, 5, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = dark;
+      ctx.fillRect(x, y + h - 8, w, 8);
+
+      ctx.fillRect(x - 6, y - 16, w + 12, 16);
+      ctx.fillStyle = pipe;
+      ctx.fillRect(x - 6, y - 12, w + 12, 10);
+    }
+
+    function drawCandyPipe(x, y, w, h) {
+      ctx.save();
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(x, y, w, h);
+      ctx.beginPath();
+      ctx.rect(x, y, w, h);
+      ctx.clip();
+
+      const stripe = 16;
+      for (let offset = -h; offset < h + w; offset += stripe * 2) {
+        ctx.fillStyle = '#d12b35';
+        ctx.beginPath();
+        ctx.moveTo(x - w + offset, y);
+        ctx.lineTo(x - w + offset + stripe, y);
+        ctx.lineTo(x + offset + stripe, y + h);
+        ctx.lineTo(x + offset, y + h);
+        ctx.closePath();
+        ctx.fill();
+      }
+      ctx.restore();
+
+      ctx.fillStyle = '#b71c1c';
+      ctx.fillRect(x - 6, y - 16, w + 12, 16);
+      ctx.fillRect(x, y + h - 8, w, 8);
+    }
+
+    function drawText() {
+      ctx.fillStyle = 'rgba(0,0,0,.55)';
+      ctx.font = 'bold 32px system-ui,Segoe UI,Roboto';
+      ctx.textAlign = 'center';
+
+      if (state === State.Idle) {
+        ctx.fillText('Klick/Space zum Starten', CFG.width / 2 + 2, CFG.height * 0.35 + 2);
+        ctx.fillStyle = '#fff';
+        ctx.fillText('Klick/Space zum Starten', CFG.width / 2, CFG.height * 0.35);
+      }
+
+      // aktueller Score
+      ctx.fillStyle = '#fff';
+      ctx.font = '700 32px system-ui,Segoe UI,Roboto';
+      ctx.fillText(String(score), CFG.width / 2, 60);
+
+      // Best-Score (pro Gerät)
+      ctx.font = '600 14px system-ui,Segoe UI,Roboto';
+      ctx.textAlign = 'left';
+      ctx.fillText('Best: ' + best, 12, 22);
+
+      if (state === State.GameOver) {
+        ctx.textAlign = 'center';
+        ctx.font = '800 40px system-ui,Segoe UI,Roboto';
+        ctx.fillStyle = 'rgba(0,0,0,.5)';
+        ctx.fillText('Game Over', CFG.width / 2 + 2, CFG.height / 2 - 40 + 2);
+        ctx.fillStyle = '#fff';
+        ctx.fillText('Game Over', CFG.width / 2, CFG.height / 2 - 40);
+
+        ctx.font = '600 18px system-ui,Segoe UI,Roboto';
+        const isNewBest = score === best && score > 0;
+        const line = 'Score: ' + score + '  •  Best: ' + best;
+        ctx.fillText(line, CFG.width / 2, CFG.height / 2);
+
+        if (isNewBest) {
+          ctx.fillText('Neuer Rekord!', CFG.width / 2, CFG.height / 2 + 26);
+          ctx.fillText('Klicke für Neustart', CFG.width / 2, CFG.height / 2 + 52);
+        } else {
+          ctx.fillText('Klicke für Neustart', CFG.width / 2, CFG.height / 2 + 28);
+        }
+      }
+    }
+
+    // --- Gameplay Update ---
+    function schnellerschneller() {
+      // sanftere Steigerung + Cap
+      const factor = 1 + score * 0.015;
+      const maxFactor = 2.2;
+      return CFG.pipeSpeed * Math.min(factor, maxFactor);
+    }
+
+    function setGameOver() {
+      if (state === State.GameOver) return;
+      state = State.GameOver;
+
+      if (score > best) {
+        best = score;
+        localStorage.setItem('flappy_best', String(best));
+      }
+    }
+
+    function update(dt, now) {
+      updateSnow(dt);
+      updateGifts(dt);
+      if (state !== State.Running) return;
+
+      bird.vy += CFG.gravity;
+      bird.vy = Math.min(bird.vy, CFG.maxFall);
+      bird.y += bird.vy;
+
+      if (bird.y - bird.r < 0) {
+        bird.y = bird.r;
+        bird.vy = 0;
+      }
+
+      if (bird.y + bird.r > CFG.height - CFG.groundHeight) {
+        setGameOver();
+        return;
+      }
+
+      if (!lastPipeTime) lastPipeTime = now;
+
+      const speed = schnellerschneller();
+      const pipeInterval = CFG.pipeInterval * (CFG.pipeSpeed / speed); // Abstand konstant halten
+      if (now - lastPipeTime > pipeInterval) {
+        spawnPipePair();
+        lastPipeTime = now;
+      }
+
+      for (const p of pipes) {
+        p.x -= speed;
+
+        if (!p.scored && p.x + CFG.pipeWidth < bird.x - bird.r) {
+          p.scored = true;
+          score += 1;
+          if (score > best) {
+            best = score;
+            localStorage.setItem('flappy_best', String(best));
+          }
+        }
+      }
+
+      pipes = pipes.filter(p => p.x + CFG.pipeWidth > -40);
+
+      for (const p of pipes) {
+        const withinX =
+          bird.x + bird.r - CFG.hitForgiveness > p.x &&
+          bird.x - bird.r + CFG.hitForgiveness < p.x + CFG.pipeWidth;
+
+        if (!withinX) continue;
+
+        if (bird.y - bird.r + CFG.hitForgiveness < p.top.h) {
+          setGameOver();
+          return;
+        }
+        if (bird.y + bird.r - CFG.hitForgiveness > p.bottom.y) {
+          setGameOver();
+          return;
+        }
+      }
+    }
+
+    // --- Game Loop ---
+    let last = 0;
+    function loop(now) {
+      requestAnimationFrame(loop);
+      const dt = Math.min(33, now - last);
+      last = now;
+
+      ctx.clearRect(0, 0, CFG.width, CFG.height);
+
+      update(dt, now);
+      drawBackground();
+      drawPipes();
+      drawBird();
+      drawText();
+    }
+    requestAnimationFrame(loop);
+
+    // Init
+    resetGame();
+  </script>
+</body>
+</html>

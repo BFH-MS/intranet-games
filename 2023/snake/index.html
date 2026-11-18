@@ -1,0 +1,363 @@
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Adventsschlange</title>
+    <style>
+
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Mountains+of+Christmas:wght@400;700&display=swap');
+
+html, body {
+    font-family: 'Roboto', sans-serif;
+    height: 100%;
+    margin: 0;
+    background-color: #B22222;
+}
+
+body {
+    display: flex;
+    flex-direction: column; 
+    align-items: center;
+    justify-content: center;
+}
+
+canvas {
+    border: 2px solid #FFFFFF; 
+    background-color: rgba(255, 255, 255, 0.8);
+    margin-bottom: 10px; 
+}
+
+#score {
+    color: white;
+    font-size: 2em;
+    font-weight: bold;
+}
+
+#gameover {
+    color: white;
+    display: none; 
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.7);
+    padding: 20px;
+    border-radius: 15px;
+    text-align: center;
+    z-index: 10;
+}
+
+#center-container {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    width: 80%;
+}
+
+#title {
+    font-family: 'Mountains of Christmas';
+    color: #FFD700;
+    font-size: 4em;
+    margin: 0 0 20px 0;
+    padding: 0 20px;
+    text-shadow: 
+        -1px -1px 0 #fff,  
+         1px -1px 0 #fff,
+        -1px  1px 0 #fff,
+         1px  1px 0 #fff; 
+}
+
+#instructions {
+    color: #333;
+    margin: auto;
+    text-align: center;
+    padding: 20px; 
+    max-width: 500px; 
+} 
+
+#startButton, #restartButton {
+    margin-top: 10px;
+    background-color: #4CAF50;
+    box-shadow: 0px 4px #367c39;
+    transition: background-color 0.3s, transform 0.3s;
+    border: none;
+    padding: 10px 20px;
+    font-size: 16px;
+    color: white;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+#startButton:hover, #restartButton:hover {
+    background-color: #367c39; 
+    transform: scale(1.05); 
+}
+
+        
+@media (max-width: 600px) { 
+    canvas {
+        width: 90vw;
+        height: 90vw; 
+    }
+
+    #center-container, #instructions, #gameover {
+        width: 95%; 
+    }
+
+    #title, #score {
+        font-size: 1.5em;
+    }
+
+    .snowflake {
+        font-size: 0.8em; 
+    }
+}
+   
+.snowflake, .snowflake .inner {
+    animation-iteration-count: infinite;
+    animation-play-state: running;
+    position: fixed;
+    top: -10%;
+    z-index: 9999;
+    -webkit-user-select: none;
+    user-select: none;
+    cursor: default;
+}
+
+.snowflake {
+    color: #fff;
+    text-shadow: 0 0 5px #000;
+    animation-name: snowflakes-shake;
+    animation-duration: 3s;
+    animation-timing-function: ease-in-out;
+}
+
+.snowflake .inner {
+    animation-duration: 10s;
+    animation-name: snowflakes-fall;
+    animation-timing-function: linear;
+}
+
+/* Define specific positions and delays for each snowflake */
+.snowflake:nth-of-type(0) { left: 1%; animation-delay: 0s; }
+.snowflake:nth-of-type(0) .inner { animation-delay: 0s; }
+.snowflake:nth-of-type(1) { left: 10%; animation-delay: 1s; }
+.snowflake:nth-of-type(1) .inner { animation-delay: 1s; }
+.snowflake:nth-of-type(2) { left: 20%; animation-delay: 0.5s; }
+.snowflake:nth-of-type(2) .inner { animation-delay: 6s; }
+.snowflake:nth-of-type(3) { left: 30%; animation-delay: 2s; }
+.snowflake:nth-of-type(3) .inner { animation-delay: 4s; }
+.snowflake:nth-of-type(4) { left: 40%; animation-delay: 2s; }
+.snowflake:nth-of-type(4) .inner { animation-delay: 2s; }
+.snowflake:nth-of-type(5) { left: 50%; animation-delay: 3s; }
+.snowflake:nth-of-type(5) .inner { animation-delay: 8s; }
+.snowflake:nth-of-type(6) { left: 60%; animation-delay: 2s; }
+.snowflake:nth-of-type(6) .inner { animation-delay: 2.5s; }
+.snowflake:nth-of-type(7) { left: 70%; animation-delay: 1s; }
+.snowflake:nth-of-type(7) .inner { animation-delay: 2.5s; }
+.snowflake:nth-of-type(8) { left: 80%; animation-delay: 0s; }
+.snowflake:nth-of-type(8) .inner { animation-delay: 1s; }
+.snowflake:nth-of-type(9) { left: 90%; animation-delay: 1.5s; }
+.snowflake:nth-of-type(9) .inner { animation-delay: 3s; }
+.snowflake:nth-of-type(10) { left: 25%; animation-delay: 0s; }
+.snowflake:nth-of-type(10) .inner { animation-delay: 2s; }
+.snowflake:nth-of-type(11) { left: 65%; animation-delay: 2.5s; }
+.snowflake:nth-of-type(11) .inner { animation-delay: 4s; }
+/* Add more if needed */
+
+@keyframes snowflakes-fall {
+    0% { transform: translateY(0); }
+    100% { transform: translateY(110vh); }
+}
+
+@keyframes snowflakes-shake {
+    0%, 100% { transform: translateX(0); }
+    50% { transform: translateX(80px); }
+}
+
+
+    </style>
+</head>
+<body>
+    <canvas width="600" height="600" id="game"></canvas>
+    <div id="score">Score: 0</div>
+
+    <div id="center-container">
+        <h1 id="title">SNAKE</h1>
+        <div id="instructions">
+            Use the arrow keys to move the snake and try to eat as many apples as possible. But be careful! If you bump into the wall or yourself, you lose! <br><br>
+            <button id="startButton">Start Game</button>
+        </div>
+    </div>
+
+    <div id="gameover">
+        Game Over! <br><br>
+        Final Score: <span id="finalScore">0</span> <br><br>
+        <button id="restartButton">Restart Game</button>
+    </div>
+
+<div class="snowflakes" aria-hidden="true">
+  <div class="snowflake">
+    <div class="inner">❅</div>
+  </div>
+  <div class="snowflake">
+    <div class="inner">❅</div>
+  </div>
+  <div class="snowflake">
+    <div class="inner">❅</div>
+  </div>
+  <div class="snowflake">
+    <div class="inner">❅</div>
+  </div>
+  <div class="snowflake">
+    <div class="inner">❅</div>
+  </div>
+  <div class="snowflake">
+    <div class="inner">❅</div>
+  </div>
+  <div class="snowflake">
+    <div class="inner">❅</div>
+  </div>
+  <div class="snowflake">
+    <div class="inner">❅</div>
+  </div>
+  <div class="snowflake">
+    <div class="inner">❅</div>
+  </div>
+  <div class="snowflake">
+    <div class="inner">❅</div>
+  </div>
+  <div class="snowflake">
+    <div class="inner">❅</div>
+  </div>
+  <div class="snowflake">
+    <div class="inner">❅</div>
+  </div>
+</div>
+    <script>
+        var canvas = document.getElementById('game');
+        var context = canvas.getContext('2d');
+        var grid = 20;
+        var count = 0;
+        var score = 0;
+        var speed = 4;
+        var gameRunning = false;
+
+        var snake = {
+            x: 160,
+            y: 160,
+            dx: grid,
+            dy: 0,
+            cells: [],
+            maxCells: 4
+        };
+
+        var apple = {
+            x: 320,
+            y: 320
+        };
+
+        function getRandomInt(min, max) {
+            return Math.floor(Math.random() * (max - min)) + min;
+        }
+
+        function gameOver() {
+            gameRunning = false;
+            document.getElementById('gameover').style.display = 'block';
+            document.getElementById('finalScore').innerText = score;
+        }
+
+        function loop() {
+            if (!gameRunning) return;
+            requestAnimationFrame(loop);
+            if (++count < speed) {
+                return;
+            }
+            count = 0;
+            context.clearRect(0, 0, canvas.width, canvas.height);
+
+            snake.x += snake.dx;
+            snake.y += snake.dy;
+
+            if (snake.x < 0 || snake.x >= canvas.width || snake.y < 0 || snake.y >= canvas.height) {
+                gameOver();
+            }
+
+            snake.cells.unshift({ x: snake.x, y: snake.y });
+
+            if (snake.cells.length > snake.maxCells) {
+                snake.cells.pop();
+            }
+
+            context.fillStyle = 'red';
+            context.fillRect(apple.x, apple.y, grid - 1, grid - 1);
+
+            context.fillStyle = 'green';
+            snake.cells.forEach(function(cell, index) {
+                context.fillRect(cell.x, cell.y, grid - 1, grid - 1);
+
+                if (cell.x === apple.x && cell.y === apple.y) {
+                    snake.maxCells++;
+                    score++;
+                    document.getElementById('score').innerText = 'Score: ' + score;
+                    apple.x = getRandomInt(0, 30) * grid;
+                    apple.y = getRandomInt(0, 30) * grid;
+                }
+
+                for (var i = index + 1; i < snake.cells.length; i++) {
+                    if (cell.x === snake.cells[i].x && cell.y === snake.cells[i].y) {
+                        gameOver();
+                    }
+                }
+            });
+        }
+
+        document.addEventListener('keydown', function(e) {
+            if (gameRunning && [37, 38, 39, 40].includes(e.which)) {
+                 e.preventDefault();
+                if (e.which === 37 && snake.dx === 0) {
+                    snake.dx = -grid;
+                    snake.dy = 0;
+                } else if (e.which === 38 && snake.dy === 0) {
+                    snake.dy = -grid;
+                    snake.dx = 0;
+                } else if (e.which === 39 && snake.dx === 0) {
+                    snake.dx = grid;
+                    snake.dy = 0;
+                } else if (e.which === 40 && snake.dy === 0) {
+                    snake.dy = grid;
+                    snake.dx = 0;
+                }
+            }
+        });
+
+      document.getElementById("startButton").addEventListener('click', function() {
+    gameRunning = true;
+    canvas.style.display = "block";
+    document.getElementById("score").style.display = "block";
+    document.getElementById("title").style.display = "none"; 
+    document.getElementById("instructions").style.display = "none";
+    requestAnimationFrame(loop);
+});
+
+document.getElementById("restartButton").addEventListener('click', function() {
+    snake.x = 160;
+    snake.y = 160;
+    snake.cells = [];
+    snake.maxCells = 4;
+    snake.dx = grid;
+    snake.dy = 0;
+    score = 0;
+    document.getElementById('score').innerText = 'Score: ' + score;
+    document.getElementById('gameover').style.display = 'none';
+    document.getElementById("title").style.display = "none"; 
+    gameRunning = true;
+    requestAnimationFrame(loop);
+});
+
+    </script>
+</body>
+
+</html>

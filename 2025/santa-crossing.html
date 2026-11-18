@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Santa Crossing – Balanced Edition v4</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: #ff3030;
+      color: #ffffff;
+      font-family: 'Press Start 2P', cursive;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+
+    #game-container {
+      position: relative;
+      width: 560px;
+      height: 720px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.8);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      background: #0b1020;
+      border: 2px solid #ffffff;
+      box-sizing: border-box;
+    }
+
+    #overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      background: gold;
+      color: #ffffff;
+      font-size: 10px;
+    }
+
+    #title {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      letter-spacing: 1px;
+    }
+
+    #subtitle {
+      font-size: 8px;
+      opacity: 0.9;
+      margin-bottom: 16px;
+      max-width: 80%;
+    }
+
+    .btn {
+      margin-top: 10px;
+      padding: 8px 16px;
+      border-radius: 8px;
+      border: none;
+      background-color: #4CAF50;
+      color: white;
+      cursor: pointer;
+      font-family: 'Press Start 2P', cursive;
+      font-size: 10px;
+      box-shadow: 0px 4px #367c39;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      transition: background-color 0.3s, transform 0.3s;
+    }
+
+    .btn:hover {
+      background-color: #367c39;
+      transform: scale(1.05);
+    }
+    .btn:focus {
+      outline: 2px solid #fff;
+    }
+    #hint {
+      font-size: 7px;
+      opacity: 0.85;
+      margin-top: 8px;
+      max-width: 85%;
+      line-height: 1.4;
+    }
+  </style>
+</head>
+<body>
+  <div id="game-container">
+    <canvas id="game" width="480" height="640"></canvas>
+    <div id="overlay">
+      <div id="title">SANTA CROSSING</div>
+      <div id="subtitle">Help Santa cross the icy road and deliver gifts.</div>
+      <div id="menu-score"></div>
+      <button class="btn" id="startBtn">Press Space or Click</button>
+      <div id="hint">Controls: Arrow Keys / WASD · P = Pause</div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const canvas = document.getElementById("game");
+      const ctx = canvas.getContext("2d");
+      const overlay = document.getElementById("overlay");
+      const menuScore = document.getElementById("menu-score");
+      const startBtn = document.getElementById("startBtn");
+
+      const W = canvas.width;
+      const H = canvas.height;
+      const LANE_HEIGHT = 80;
+      const TOP_SAFE_ROW = 0;
+      const BOTTOM_SAFE_ROW = 7;
+
+      const STATE = { MENU: "menu", RUNNING: "running", PAUSED: "paused", GAME_OVER: "gameover" };
+      let gameState = STATE.MENU;
+
+      const player = { width: 34, height: 40, x: 0, y: 0, row: BOTTOM_SAFE_ROW };
+      const lanes = [];
+      let obstacles = [];
+      const snowflakes = [];
+
+      let score = 0;
+      let level = 1;
+      let bestScore = 0;
+      let lastTime = 0;
+      let isPaused = false;
+
+      const keysDown = {
+        ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false,
+        KeyW: false, KeyS: false, KeyA: false, KeyD: false
+      };
+
+      const MAX_VEHICLE_WIDTH = 90;
+
+      // Difficulty constants
+      const BASE_MIN_GAP_PX = 120;
+      const MIN_GAP_REDUCTION_PER_LEVEL = 10;
+      const MIN_MIN_GAP_PX = 50;
+
+      function getMaxObstaclesForLevel(lv) {
+        return Math.min(5, 2 + Math.floor((lv - 1) / 2));
+      }
+
+      try {
+        const storedBest = localStorage.getItem("santaCrossingBest");
+        if (storedBest !== null) bestScore = parseInt(storedBest, 10) || 0;
+      } catch (e) {}
+
+      function createLane(row, direction, baseSpeed, color) {
+        return {
+          row,
+          direction,
+          baseSpeed,
+          speedScale: 1,
+          spawnInterval: 1.0,
+          spawnTimer: 0.0,
+          minGapPx: BASE_MIN_GAP_PX,
+          color
+        };
+      }
+
+      function initLanes() {
+        lanes.length = 0;
+        lanes.push(null);
+        lanes.push(createLane(1,  1,  55, "#bde0fe"));
+        lanes.push(createLane(2, -1,  65, "#9ec5fe"));
+        lanes.push(createLane(3,  1,  75, "#90e0ef"));
+        lanes.push(createLane(4, -1,  85, "#8ecae6"));
+        lanes.push(createLane(5,  1,  95, "#a2d2ff"));
+        lanes.push(createLane(6, -1, 105, "#89c2d9"));
+        lanes.push(null);
+      }
+
+      function computeSpawnInterval(lane) {
+        const base = lane.minGapPx / (lane.baseSpeed * lane.speedScale);
+        const randomFactor = 0.7 + Math.random() * 0.6; // 0.7–1.3
+        return base * randomFactor;
+      }
+
+      function resetGame() {
+        initLanes();
+        obstacles = [];
+        initSnowflakes();
+        score = 0;
+        level = 1;
+
+        // Apply base difficulty (sets speedScale, minGap, and spawnInterval).
+        applyDifficulty(true);
+
+        // Start with ONE visible vehicle per lane, and normal spawn timing right away.
+        for (let i = 1; i <= 6; i++) {
+          const lane = lanes[i];
+          if (!lane) continue;
+
+          lane.spawnInterval = computeSpawnInterval(lane);
+          lane.spawnTimer = Math.random() * lane.spawnInterval;
+
+          // Spawn a single initial vehicle
+          spawnObstacleOnLane(lane);
+
+          // Move that freshly spawned vehicle into a visible position on screen
+          const last = obstacles[obstacles.length - 1];
+          if (last && last.laneRow === lane.row) {
+            // Place somewhere along the road, fully visible
+            last.x = Math.random() * (W - last.width);
+          }
+        }
+
+        isPaused = false;
+        gameState = STATE.RUNNING;
+        overlay.style.display = "none";
+        placePlayerAtStart();
+        lastTime = 0;
+      }
+
+      function placePlayerAtStart() {
+        player.row = BOTTOM_SAFE_ROW;
+        player.y = player.row * LANE_HEIGHT + (LANE_HEIGHT - player.height) / 2;
+        player.x = W / 2 - player.width / 2;
+      }
+
+      function initSnowflakes() {
+        snowflakes.length = 0;
+        for (let i = 0; i < 80; i++) {
+          snowflakes.push({
+            x: Math.random() * W,
+            y: Math.random() * H,
+            radius: Math.random() * 2 + 1,
+            speed: Math.random() * 25 + 15
+          });
+        }
+      }
+
+      function spawnObstacleOnLane(lane, xOverride) {
+        const typeRoll = Math.random();
+        let kind, width, height;
+        if (typeRoll < 0.4) { kind = "sleigh"; width = 70; height = 40; }
+        else if (typeRoll < 0.75) { kind = "truck"; width = 80; height = 40; }
+        else { kind = "train"; width = 90; height = 40; }
+
+        const dir = lane.direction;
+        const laneY = lane.row * LANE_HEIGHT + (LANE_HEIGHT - height) / 2;
+        const v = lane.baseSpeed * lane.speedScale * dir;
+
+        let x;
+        if (typeof xOverride === "number") {
+          x = xOverride;
+        } else {
+          x = dir > 0 ? -width - 60 : W + 60;
+        }
+
+        obstacles.push({ x, y: laneY, width, height, speed: v, laneRow: lane.row, kind });
+      }
+
+      function countLaneObstacles(row) {
+        let c = 0;
+        for (let i = 0; i < obstacles.length; i++) {
+          if (obstacles[i].laneRow === row) c++;
+        }
+        return c;
+      }
+
+      function canSpawnOnLane(lane) {
+        if (countLaneObstacles(lane.row) >= getMaxObstaclesForLevel(level)) return false;
+
+        const dir = lane.direction;
+        let nearest = null;
+
+        for (let i = 0; i < obstacles.length; i++) {
+          const o = obstacles[i];
+          if (o.laneRow !== lane.row) continue;
+          if (!nearest) nearest = o;
+          else if (dir > 0 ? o.x < nearest.x : o.x > nearest.x) nearest = o;
+        }
+
+        if (!nearest) return true;
+
+        if (dir > 0) {
+          const front = nearest.x + nearest.width;
+          if (front < lane.minGapPx) return false;
+        } else {
+          const frontFromRight = W - nearest.x;
+          if (frontFromRight < lane.minGapPx) return false;
+        }
+        return true;
+      }
+
+      function updateLanes(dt) {
+        for (let i = 1; i <= 6; i++) {
+          const lane = lanes[i];
+          if (!lane) continue;
+
+          lane.spawnTimer += dt;
+
+          const empty = countLaneObstacles(lane.row) === 0;
+          const emptyLaneTimeout = empty && lane.spawnTimer >= lane.spawnInterval;
+
+          if (lane.spawnTimer >= lane.spawnInterval || emptyLaneTimeout) {
+            if (canSpawnOnLane(lane) || emptyLaneTimeout) {
+              lane.spawnTimer = 0;
+              spawnObstacleOnLane(lane);
+              lane.spawnInterval = computeSpawnInterval(lane);
+            } else {
+              lane.spawnTimer = lane.spawnInterval * 0.4;
+            }
+          }
+        }
+      }
+
+      function updateObstacles(dt) {
+        for (let i = obstacles.length - 1; i >= 0; i--) {
+          const o = obstacles[i];
+          o.x += o.speed * dt;
+          if (o.speed > 0 && o.x > W + 200) obstacles.splice(i, 1);
+          else if (o.speed < 0 && o.x < -o.width - 200) obstacles.splice(i, 1);
+        }
+      }
+
+      function updateSnow(dt) {
+        for (let i = 0; i < snowflakes.length; i++) {
+          const s = snowflakes[i];
+          s.y += s.speed * dt;
+          if (s.y > H) { s.y = -10; s.x = Math.random() * W; }
+        }
+      }
+
+      function handleInput() {
+        if (gameState !== STATE.RUNNING || isPaused) return;
+
+        function moveUp() { if (player.row > TOP_SAFE_ROW) { player.row--; player.y -= LANE_HEIGHT; } }
+        function moveDown() { if (player.row < BOTTOM_SAFE_ROW) { player.row++; player.y += LANE_HEIGHT; } }
+        function moveLeft() { player.x -= 50; if (player.x < 0) player.x = 0; }
+        function moveRight() { player.x += 50; if (player.x + player.width > W) player.x = W - player.width; }
+
+        if (consumeKey("ArrowUp") || consumeKey("KeyW")) moveUp();
+        if (consumeKey("ArrowDown") || consumeKey("KeyS")) moveDown();
+        if (consumeKey("ArrowLeft") || consumeKey("KeyA")) moveLeft();
+        if (consumeKey("ArrowRight") || consumeKey("KeyD")) moveRight();
+      }
+
+      function consumeKey(code) {
+        if (keysDown[code]) { keysDown[code] = false; return true; }
+        return false;
+      }
+
+      function updateLevelProgression() {
+        if (player.row === TOP_SAFE_ROW) {
+          score++;
+          const newLevel = Math.floor(score / 2) + 1;
+          if (newLevel > level) { level = newLevel; applyDifficulty(false); }
+          placePlayerAtStart();
+        }
+      }
+
+      function applyDifficulty(hardReset) {
+        const globalScale = Math.min(1 + 0.05 * (level - 1), 1.6);
+
+        for (let i = 1; i <= 6; i++) {
+          const lane = lanes[i];
+          if (!lane) continue;
+
+          lane.speedScale = globalScale;
+          lane.minGapPx = Math.max(
+            MIN_MIN_GAP_PX,
+            BASE_MIN_GAP_PX - MIN_GAP_REDUCTION_PER_LEVEL * (level - 1)
+          );
+
+          if (hardReset) {
+            lane.spawnTimer = 0;
+            lane.spawnInterval = computeSpawnInterval(lane);
+          } else {
+            for (let j = 0; j < obstacles.length; j++) {
+              const o = obstacles[j];
+              if (o.laneRow === lane.row) {
+                o.speed = lane.baseSpeed * lane.speedScale * lane.direction;
+              }
+            }
+          }
+        }
+      }
+
+      function checkCollision() {
+        if (player.row <= 0 || player.row >= 7) return;
+
+        for (let i = 0; i < obstacles.length; i++) {
+          const o = obstacles[i];
+          if (o.laneRow !== player.row) continue;
+
+          if (
+            player.x < o.x + o.width &&
+            player.x + player.width > o.x &&
+            player.y < o.y + o.height &&
+            player.y + player.height > o.y
+          ) {
+            triggerGameOver();
+            return;
+          }
+        }
+      }
+
+      function triggerGameOver() {
+        gameState = STATE.GAME_OVER;
+        overlay.style.display = "flex";
+
+        if (score > bestScore) {
+          bestScore = score;
+          try { localStorage.setItem("santaCrossingBest", String(bestScore)); } catch (e) {}
+        }
+
+        renderMenuText(true);
+      }
+
+      function renderBackground() {
+        const grad = ctx.createLinearGradient(0, 0, 0, H);
+        grad.addColorStop(0, "#001219");
+        grad.addColorStop(0.5, "#001f3f");
+        grad.addColorStop(1, "#012a4a");
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, W, H);
+
+        ctx.fillStyle = "#f8f9fa";
+        ctx.fillRect(0, 0, W, LANE_HEIGHT);
+        ctx.fillRect(0, BOTTOM_SAFE_ROW * LANE_HEIGHT, W, LANE_HEIGHT);
+
+        ctx.fillStyle = "#e9ecef";
+        ctx.fillRect(0, LANE_HEIGHT - 8, W, 8);
+        ctx.fillRect(0, H - LANE_HEIGHT, W, 8);
+
+        drawHouse(40, 10); drawHouse(170, 12); drawHouse(300, 8);
+        drawCandyCane(110, 12); drawCandyCane(260, 14); drawCandyCane(400, 10);
+      }
+
+      function drawHouse(x, y) {
+        ctx.fillStyle = "#c1121f";
+        ctx.beginPath();
+        ctx.moveTo(x + 5, y + 20);
+        ctx.lineTo(x + 25, y);
+        ctx.lineTo(x + 45, y + 20);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.fillStyle = "#f8f9fa";
+        ctx.fillRect(x + 8, y + 20, 34, 20);
+
+        ctx.fillStyle = "#6c584c";
+        ctx.fillRect(x + 22, y + 26, 8, 14);
+
+        ctx.fillStyle = "#ffef9f";
+        ctx.fillRect(x + 12, y + 24, 6, 6);
+        ctx.fillRect(x + 32, y + 24, 6, 6);
+      }
+
+      function drawCandyCane(x, y) {
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = "#ffffff";
+        ctx.beginPath();
+        ctx.moveTo(x, y + 4);
+        ctx.lineTo(x, y + 26);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(x, y + 4, 6, Math.PI, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.strokeStyle = "#e63946";
+        for (let k = 0; k < 5; k++) {
+          ctx.beginPath();
+          ctx.moveTo(x - 4, y + 5 + k * 5);
+          ctx.lineTo(x + 4, y + 1 + k * 5);
+          ctx.stroke();
+        }
+      }
+
+      function renderLanes() {
+        for (let i = 1; i <= 6; i++) {
+          const lane = lanes[i];
+          if (!lane) continue;
+
+          ctx.fillStyle = lane.color;
+          ctx.fillRect(0, i * LANE_HEIGHT, W, LANE_HEIGHT);
+
+          ctx.strokeStyle = "rgba(255,255,255,0.25)";
+          ctx.setLineDash([10, 10]);
+          ctx.beginPath();
+          ctx.moveTo(0, i * LANE_HEIGHT + LANE_HEIGHT / 2);
+          ctx.lineTo(W, i * LANE_HEIGHT + LANE_HEIGHT / 2);
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
+      }
+
+      function drawVehicleShadow(o, radiusY) {
+        ctx.fillStyle = "rgba(0,0,0,0.25)";
+        ctx.beginPath();
+        ctx.ellipse(o.x + o.width / 2, o.y + o.height, o.width / 2, radiusY, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      function renderObstacles() {
+        for (let i = 0; i < obstacles.length; i++) {
+          const o = obstacles[i];
+          drawVehicleShadow(o, 6);
+
+          if (o.kind === "sleigh") drawSleigh(o);
+          else if (o.kind === "truck") drawTruck(o);
+          else drawGiftTrain(o);
+        }
+      }
+
+      function drawSleigh(o) {
+        const dir = Math.sign(o.speed) || 1;
+
+        ctx.strokeStyle = "#f8f9fa";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(o.x + 6, o.y + o.height - 4);
+        ctx.lineTo(o.x + o.width - 6, o.y + o.height - 4);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(o.x + 10, o.y + o.height - 4);
+        ctx.lineTo(o.x + 6, o.y + o.height - 10);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(o.x + o.width - 10, o.y + o.height - 4);
+        ctx.lineTo(o.x + o.width - 6, o.y + o.height - 10);
+        ctx.stroke();
+
+        const bodyY = o.y + 6;
+        const bodyH = o.height - 16;
+        ctx.fillStyle = "#b11226";
+        ctx.fillRect(o.x + 8, bodyY, o.width - 16, bodyH);
+
+        ctx.strokeStyle = "#ffd6a5";
+        ctx.strokeRect(o.x + 8, bodyY, o.width - 16, bodyH);
+
+        const backW = 10;
+        ctx.fillStyle = "#d00000";
+        const backX = dir > 0 ? o.x + o.width - 8 - backW : o.x + 8;
+        ctx.fillRect(backX, bodyY - 4, backW, bodyH + 6);
+
+        ctx.fillStyle = "#fefae0";
+        const frontX = dir > 0 ? o.x + o.width - 10 : o.x + 4;
+        ctx.fillRect(frontX, bodyY + bodyH / 2 - 2, 6, 4);
+
+        let gx = o.x + 14;
+        const gy = bodyY - 10;
+        const gifts = [
+          { c: "#ffbe0b", w: 12 },
+          { c: "#48cae4", w: 12 },
+          { c: "#8338ec", w: 12 },
+        ];
+
+        gifts.forEach(g => {
+          ctx.fillStyle = g.c;
+          ctx.fillRect(gx, gy, g.w, 10);
+
+          ctx.strokeStyle = "#ffffff";
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(gx + g.w / 2, gy);
+          ctx.lineTo(gx + g.w / 2, gy + 10);
+          ctx.moveTo(gx, gy + 5);
+          ctx.lineTo(gx + g.w, gy + 5);
+          ctx.stroke();
+
+          gx += g.w + 3;
+        });
+      }
+
+      function drawTruck(o) {
+        const dir = Math.sign(o.speed) || 1;
+
+        const bodyHeight = o.height - 14;
+        const cabW = o.width * 0.25;
+        const trailerW = o.width * 0.65;
+
+        let trailerX, cabX;
+        if (dir > 0) {
+          trailerX = o.x + 4;
+          cabX = trailerX + trailerW + 2;
+        } else {
+          cabX = o.x + 4;
+          trailerX = cabX + cabW + 2;
+        }
+
+        ctx.fillStyle = "#1d3557";
+        ctx.fillRect(trailerX, o.y + 6, trailerW, bodyHeight);
+
+        ctx.fillStyle = "#457b9d";
+        ctx.fillRect(trailerX, o.y + 6, trailerW, bodyHeight / 2);
+
+        ctx.strokeStyle = "#f1faee";
+        ctx.lineWidth = 1;
+        ctx.strokeRect(trailerX, o.y + 6, trailerW, bodyHeight);
+
+        ctx.fillStyle = "#ffb703";
+        ctx.fillRect(cabX, o.y + 10, cabW, bodyHeight - 4);
+
+        ctx.fillStyle = "#e0f4ff";
+        const winX = dir > 0 ? cabX + 4 : cabX + 8;
+        ctx.fillRect(winX, o.y + 12, cabW - 10, 10);
+
+        ctx.fillStyle = "#f1faee";
+        const frontX = dir > 0 ? cabX + cabW : cabX;
+        ctx.fillRect(frontX - (dir > 0 ? 4 : 0), o.y + o.height - 14, 4, 6);
+
+        ctx.fillStyle = "#e63946";
+        const rearX = dir > 0 ? o.x + 4 : o.x + o.width - 8;
+        ctx.fillRect(rearX, o.y + o.height - 14, 4, 6);
+
+        const wheelY = o.y + o.height - 4;
+        function wheel(x) {
+          ctx.fillStyle = "#000000";
+          ctx.beginPath();
+          ctx.arc(x, wheelY, 6, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.fillStyle = "#adb5bd";
+          ctx.beginPath();
+          ctx.arc(x, wheelY, 3, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        wheel(trailerX + 10);
+        wheel(trailerX + trailerW - 14);
+        wheel(cabX + cabW / 2);
+      }
+
+      function drawGiftTrain(o) {
+        const dir = Math.sign(o.speed) || 1;
+        const segmentWidth = Math.max(26, (o.width - 10) / 3);
+
+        for (let s = 0; s < 3; s++) {
+          const offset = s * (segmentWidth + 3);
+          const sx = dir > 0 ? o.x + 4 + offset : o.x + o.width - 4 - segmentWidth - offset;
+          const sy = o.y + 10;
+          if (sx > o.x + o.width || sx + segmentWidth < o.x) continue;
+          ctx.fillStyle = s === 0 ? "#ff006e" : s === 1 ? "#3a86ff" : "#ffbe0b";
+          ctx.fillRect(sx, sy, segmentWidth, o.height - 20);
+
+          ctx.strokeStyle = "#ffffff";
+          ctx.lineWidth = 1.5;
+          ctx.strokeRect(sx, sy, segmentWidth, o.height - 20);
+
+          ctx.fillStyle = "#f8f9fa";
+          ctx.fillRect(sx + 4, sy - 8, segmentWidth - 8, 8);
+
+          ctx.strokeStyle = "#ff477e";
+          ctx.beginPath();
+          ctx.moveTo(sx + segmentWidth / 2, sy - 8);
+          ctx.lineTo(sx + segmentWidth / 2, sy);
+          ctx.moveTo(sx + 4, sy - 4);
+          ctx.lineTo(sx + segmentWidth - 4, sy - 4);
+          ctx.stroke();
+
+          const wheelY = o.y + o.height - 4;
+          ctx.fillStyle = "#000000";
+          ctx.beginPath();
+          ctx.arc(sx + 8, wheelY, 5, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.beginPath();
+          ctx.arc(sx + segmentWidth - 8, wheelY, 5, 0, Math.PI * 2);
+          ctx.fill();
+
+          if (s < 2) {
+            const cx = dir > 0 ? sx + segmentWidth + 1 : sx - 1;
+            ctx.strokeStyle = "#ffffff";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(cx, wheelY - 4);
+            ctx.lineTo(cx + (dir > 0 ? 6 : -6), wheelY - 4);
+            ctx.stroke();
+          }
+        }
+      }
+
+      function renderSnow() {
+        ctx.fillStyle = "#ffffff";
+        for (let i = 0; i < snowflakes.length; i++) {
+          const s = snowflakes[i];
+          ctx.beginPath();
+          ctx.arc(s.x, s.y, s.radius, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      function renderPlayer() {
+        ctx.fillStyle = "rgba(0,0,0,0.35)";
+        ctx.beginPath();
+        ctx.ellipse(player.x + player.width / 2, player.y + player.height, player.width / 2, 6, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        const bodyHeight = player.height * 0.6;
+        const bodyY = player.y + player.height - bodyHeight;
+
+        const sackWidth = player.width * 0.9;
+        const sackHeight = bodyHeight * 0.9;
+        const sackX = player.x - sackWidth * 0.2;
+        const sackY = bodyY - sackHeight * 0.4;
+
+        ctx.fillStyle = "#6c584c";
+        ctx.beginPath();
+        ctx.ellipse(sackX + sackWidth / 2, sackY + sackHeight / 2, sackWidth / 2, sackHeight / 2, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = "#3f291a";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(sackX + sackWidth * 0.3, sackY + sackHeight * 0.25);
+        ctx.lineTo(sackX + sackWidth * 0.7, sackY + sackHeight * 0.15);
+        ctx.stroke();
+
+        const giftSize = 7;
+        ctx.fillStyle = "#ffbe0b";
+        ctx.fillRect(sackX + sackWidth * 0.25, sackY - giftSize, giftSize, giftSize);
+
+        ctx.fillStyle = "#48cae4";
+        ctx.fillRect(sackX + sackWidth * 0.45, sackY - giftSize * 1.3, giftSize, giftSize);
+
+        ctx.fillStyle = "#d00000";
+        ctx.fillRect(sackX + sackWidth * 0.6, sackY - giftSize * 0.8, giftSize, giftSize);
+
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 1;
+        function giftCross(x, y, size) {
+          ctx.beginPath();
+          ctx.moveTo(x + size / 2, y);
+          ctx.lineTo(x + size / 2, y + size);
+          ctx.moveTo(x, y + size / 2);
+          ctx.lineTo(x + size, y + size / 2);
+          ctx.stroke();
+        }
+        giftCross(sackX + sackWidth * 0.25, sackY - giftSize, giftSize);
+        giftCross(sackX + sackWidth * 0.45, sackY - giftSize * 1.3, giftSize);
+        giftCross(sackX + sackWidth * 0.6, sackY - giftSize * 0.8, giftSize);
+
+        ctx.fillStyle = "#e63946";
+        ctx.fillRect(player.x, bodyY, player.width, bodyHeight);
+
+        ctx.fillStyle = "#000000";
+        ctx.fillRect(player.x, bodyY + bodyHeight * 0.45, player.width, 5);
+
+        ctx.fillStyle = "#ffbe0b";
+        ctx.fillRect(player.x + player.width / 2 - 4, bodyY + bodyHeight * 0.45, 8, 5);
+
+        const headSize = player.height * 0.45;
+        const headX = player.x + player.width / 2 - headSize / 2;
+        const headY = player.y - 2;
+
+        ctx.fillStyle = "#f4d3b3";
+        ctx.fillRect(headX, headY, headSize, headSize);
+
+        ctx.fillStyle = "#ffffff";
+        ctx.beginPath();
+        ctx.moveTo(headX + headSize * 0.2, headY + headSize * 0.5);
+        ctx.lineTo(headX + headSize * 0.8, headY + headSize * 0.5);
+        ctx.lineTo(headX + headSize * 0.5, headY + headSize * 0.95);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.fillStyle = "#e63946";
+        ctx.beginPath();
+        ctx.moveTo(headX, headY + 5);
+        ctx.lineTo(headX + headSize, headY + 5);
+        ctx.lineTo(headX + headSize / 2, headY - headSize * 0.4);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.fillStyle = "#ffffff";
+        ctx.beginPath();
+        ctx.arc(headX + headSize / 2, headY - headSize * 0.4, 4, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillRect(headX, headY + 5, headSize, 4);
+
+        const handX = player.x + player.width + 2;
+        const handY = bodyY + bodyHeight * 0.4;
+
+        ctx.fillStyle = "#f4d3b3";
+        ctx.fillRect(handX, handY, 4, 6);
+
+        const smallGiftSize = 8;
+        const gx = handX + 2;
+        const gy = handY - smallGiftSize;
+
+        ctx.fillStyle = "#3a86ff";
+        ctx.fillRect(gx, gy, smallGiftSize, smallGiftSize);
+
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 1;
+        giftCross(gx, gy, smallGiftSize);
+      }
+
+      function renderHUD() {
+        ctx.fillStyle = "rgba(0,0,0,0.8)";
+        ctx.fillRect(0, 0, W, 32);
+
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "10px 'Press Start 2P', cursive";
+        ctx.textBaseline = "middle";
+
+        ctx.fillText("SCORE: " + score, 10, 16);
+        ctx.fillText("LVL: " + level, 200, 16);
+        ctx.fillText("BEST: " + bestScore, 340, 16);
+
+        if (isPaused && gameState === STATE.RUNNING) {
+          ctx.fillStyle = "#ffd60a";
+          ctx.fillText("PAUSE", 430, 16);
+        }
+      }
+
+      function renderMenuText(isGameOver) {
+        let html = "";
+        if (isGameOver) {
+          html += "<div style='margin-bottom:4px;font-size:12px;'>GAME OVER</div>";
+          html += "<div style='margin-bottom:4px;font-size:10px;'>SCORE: " + score + "</div>";
+        }
+        html += "<div style='font-size:10px;'>BEST: " + bestScore + "</div>";
+        menuScore.innerHTML = html;
+      }
+
+      function gameLoop(timestamp) {
+        if (!lastTime) lastTime = timestamp;
+        const dt = (timestamp - lastTime) / 1000;
+        lastTime = timestamp;
+
+        if (gameState === STATE.RUNNING && !isPaused) {
+          update(dt);
+        }
+
+        draw();
+        requestAnimationFrame(gameLoop);
+      }
+
+      function update(dt) {
+        updateSnow(dt);
+        updateLanes(dt);
+        updateObstacles(dt);
+        handleInput();
+        updateLevelProgression();
+        checkCollision();
+      }
+
+      function draw() {
+        renderBackground();
+        renderLanes();
+        renderObstacles();
+        renderSnow();
+        renderPlayer();
+        renderHUD();
+      }
+
+      window.addEventListener("keydown", (e) => {
+        const code = e.code;
+
+        if (code === "Space") {
+          if (gameState === STATE.MENU || gameState === STATE.GAME_OVER) {
+            e.preventDefault();
+            resetGame();
+            return;
+          }
+        }
+
+        if (code === "KeyP") {
+          if (gameState === STATE.RUNNING) {
+            isPaused = !isPaused;
+          }
+          return;
+        }
+
+        if (keysDown.hasOwnProperty(code)) {
+          keysDown[code] = true;
+          e.preventDefault();
+        }
+      });
+
+      window.addEventListener("keyup", (e) => {
+        const code = e.code;
+        if (keysDown.hasOwnProperty(code)) {
+          keysDown[code] = false;
+          e.preventDefault();
+        }
+      });
+
+      startBtn.addEventListener("click", () => {
+        if (gameState === STATE.MENU || gameState === STATE.GAME_OVER) {
+          resetGame();
+        }
+      });
+
+      renderMenuText(false);
+      initSnowflakes();
+      initLanes();
+      requestAnimationFrame(gameLoop);
+    })();
+  </script>
+</body>
+</html>

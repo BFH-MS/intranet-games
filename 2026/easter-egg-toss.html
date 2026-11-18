@@ -1,0 +1,2952 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>Easter Egg Toss</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Gaegu:wght@700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        font-family: "Fredoka", sans-serif;
+        background: #87ceeb;
+        user-select: none;
+        -webkit-user-select: none;
+        touch-action: manipulation;
+      }
+      canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+        cursor: crosshair;
+      }
+      .ov {
+        position: absolute;
+        inset: 0;
+        z-index: 10;
+        display: grid;
+        place-items: center;
+        padding: 20px;
+        background: rgba(30, 60, 20, 0.35);
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
+        opacity: 1;
+        transition: opacity 0.4s;
+      }
+      .ov.h {
+        opacity: 0;
+        pointer-events: none;
+      }
+      .bx {
+        background: linear-gradient(170deg, #fef9e7 0%, #fdf2d1 40%, #f5e6b8 100%);
+        border-radius: 18px;
+        padding: 28px 32px;
+        max-width: 420px;
+        width: 100%;
+        text-align: center;
+        box-shadow:
+          0 4px 0 #c9a96e,
+          0 8px 0 #a07840,
+          0 12px 30px rgba(60, 30, 0, 0.3);
+        border: 3px solid #d4a853;
+        position: relative;
+      }
+      .bx::before {
+        content: "";
+        position: absolute;
+        inset: 6px;
+        border: 2px dashed rgba(180, 140, 60, 0.2);
+        border-radius: 12px;
+        pointer-events: none;
+      }
+      .bx h1 {
+        font-family: "Gaegu", cursive;
+        font-size: 38px;
+        font-weight: 700;
+        color: #5d4037;
+        margin-bottom: 4px;
+        text-shadow: 1px 2px 0 rgba(180, 140, 60, 0.2);
+        letter-spacing: 1px;
+      }
+      .bx p {
+        color: #795548;
+        font-size: 14px;
+        line-height: 1.5;
+        margin: 4px 0;
+        font-weight: 400;
+      }
+      .btn {
+        display: inline-block;
+        margin-top: 14px;
+        padding: 12px 44px;
+        border: none;
+        border-radius: 50px;
+        background: linear-gradient(180deg, #81c784, #4caf50);
+        color: #fff;
+        font-family: "Fredoka", sans-serif;
+        font-size: 18px;
+        font-weight: 700;
+        cursor: pointer;
+        box-shadow:
+          0 4px 0 #2e7d32,
+          0 6px 12px rgba(46, 125, 50, 0.3);
+        transition:
+          transform 0.1s,
+          box-shadow 0.1s;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        letter-spacing: 0.5px;
+      }
+      .btn:hover {
+        transform: translateY(-1px);
+        box-shadow:
+          0 5px 0 #2e7d32,
+          0 8px 16px rgba(46, 125, 50, 0.3);
+      }
+      .btn:active {
+        transform: translateY(2px);
+        box-shadow:
+          0 2px 0 #2e7d32,
+          0 3px 6px rgba(46, 125, 50, 0.3);
+      }
+      .btn2 {
+        display: inline-block;
+        padding: 12px 28px;
+        border: 2px solid #bcaaa4;
+        border-radius: 50px;
+        background: linear-gradient(180deg, #fff8e1, #ffe0b2);
+        color: #6d4c41;
+        font-family: "Fredoka", sans-serif;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        box-shadow: 0 2px 0 #a1887f;
+        transition: transform 0.1s;
+      }
+      .btn2:hover {
+        transform: translateY(-1px);
+      }
+      .btn2:active {
+        transform: translateY(1px);
+      }
+      .br {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        margin-top: 14px;
+      }
+      .sl {
+        font-family: "Gaegu", cursive;
+        font-size: 52px;
+        font-weight: 700;
+        color: #4e342e;
+        margin: 8px 0 2px;
+        text-shadow: 1px 2px 0 rgba(180, 140, 60, 0.15);
+      }
+      .bl {
+        font-size: 14px;
+        font-weight: 600;
+        color: #8d6e63;
+      }
+      .stat-row {
+        display: flex;
+        gap: 16px;
+        justify-content: center;
+        margin: 10px 0;
+        flex-wrap: wrap;
+      }
+      .stat-item {
+        text-align: center;
+      }
+      .stat-item .stat-val {
+        font-family: "Gaegu", cursive;
+        font-size: 26px;
+        font-weight: 700;
+        color: #5d4037;
+        line-height: 1;
+      }
+      .stat-item .stat-lbl {
+        font-size: 11px;
+        color: #a1887f;
+        font-weight: 400;
+      }
+      .new-best {
+        display: inline-block;
+        background: linear-gradient(135deg, #ffd54f, #ff8f00);
+        color: #fff;
+        font-size: 13px;
+        font-weight: 700;
+        padding: 3px 12px;
+        border-radius: 20px;
+        margin-top: 4px;
+        text-shadow: 0 1px 1px rgba(0, 0, 0, 0.15);
+        animation: bestPulse 1s ease infinite;
+      }
+      @keyframes bestPulse {
+        0%,
+        100% {
+          transform: scale(1);
+        }
+        50% {
+          transform: scale(1.08);
+        }
+      }
+      .cd {
+        position: absolute;
+        inset: 0;
+        z-index: 8;
+        display: grid;
+        place-items: center;
+        font-family: "Gaegu", cursive;
+        font-size: 120px;
+        font-weight: 700;
+        color: rgba(255, 255, 255, 0.92);
+        text-shadow:
+          0 6px 24px rgba(0, 0, 0, 0.25),
+          0 2px 0 rgba(100, 60, 0, 0.15);
+        pointer-events: none;
+      }
+      .cd.h {
+        display: none;
+      }
+      .tip {
+        color: #5d4037;
+        font-size: 15px;
+        font-weight: 600;
+        margin-top: 10px;
+        font-style: normal;
+        background: linear-gradient(135deg, #fff9c4, #ffe0b2);
+        padding: 8px 16px;
+        border-radius: 12px;
+        border: 2px solid #ffcc80;
+        display: inline-block;
+      }
+      @media (max-width: 600px) {
+        .bx {
+          padding: 22px 16px;
+          border-radius: 14px;
+        }
+        .bx h1 {
+          font-size: 28px;
+        }
+        .sl {
+          font-size: 38px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="c"></canvas>
+    <div class="cd h" id="cd">3</div>
+    <div class="ov" id="ss">
+      <div class="bx">
+        <h1>Easter Egg Toss</h1>
+        <p>
+          Throw eggs at the Easter Bunny!
+          <br />
+          He'll run, hide, peek and dodge.
+        </p>
+        <p class="tip">Hit to earn eggs back. Miss and you'll run out!</p>
+        <button class="btn" id="goBtn">Play!</button>
+      </div>
+    </div>
+    <div class="ov h" id="ps">
+      <div class="bx">
+        <h1>Paused</h1>
+        <p>Your bunny isn't going anywhere...</p>
+        <div class="stat-row" id="pauseStats"></div>
+        <div class="br">
+          <button class="btn" id="resBtn">Resume</button>
+          <button class="btn2" id="qBtn">Quit</button>
+        </div>
+      </div>
+    </div>
+    <div class="ov h" id="es">
+      <div class="bx">
+        <h1 id="endTitle">Game Over!</h1>
+        <div class="sl" id="fs">0</div>
+        <div id="bestBadge"></div>
+        <div class="bl" id="bsl"></div>
+        <div class="stat-row" id="endStats"></div>
+        <div class="br">
+          <button class="btn" id="agBtn">Play Again</button>
+          <button class="btn2" id="mnBtn">Menu</button>
+        </div>
+      </div>
+    </div>
+    <script>
+      (() => {
+        const C = document.getElementById("c"),
+          X = C.getContext("2d");
+        let W = 0,
+          H = 0;
+        function resize() {
+          const d = devicePixelRatio || 1;
+          W = innerWidth;
+          H = innerHeight;
+          C.width = W * d;
+          C.height = H * d;
+          C.style.width = W + "px";
+          C.style.height = H + "px";
+          X.setTransform(d, 0, 0, d, 0, 0);
+          generateCovers();
+        }
+        const rand = (a, b) => Math.random() * (b - a) + a;
+        const randI = (a, b) => Math.floor(rand(a, b + 1));
+        const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+        const pick = (a) => a[Math.floor(Math.random() * a.length)];
+        const dist = (x1, y1, x2, y2) => Math.hypot(x2 - x1, y2 - y1);
+
+        // Audio
+        const AC = window.AudioContext || window.webkitAudioContext;
+        let au = null;
+        function ea() {
+          if (!au) au = new AC();
+        }
+        function sndThrow() {
+          ea();
+          const o = au.createOscillator(),
+            g = au.createGain();
+          o.type = "sine";
+          o.frequency.value = 400;
+          o.frequency.exponentialRampToValueAtTime(800, au.currentTime + 0.1);
+          g.gain.value = 0.08;
+          g.gain.exponentialRampToValueAtTime(0.001, au.currentTime + 0.12);
+          o.connect(g);
+          g.connect(au.destination);
+          o.start();
+          o.stop(au.currentTime + 0.13);
+        }
+        function sndHit() {
+          ea();
+          const b = au.sampleRate * 0.06,
+            buf = au.createBuffer(1, b, au.sampleRate),
+            d = buf.getChannelData(0);
+          for (let i = 0; i < b; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / b);
+          const s = au.createBufferSource(),
+            g = au.createGain();
+          s.buffer = buf;
+          g.gain.value = 0.15;
+          s.connect(g);
+          g.connect(au.destination);
+          s.start();
+          const o = au.createOscillator(),
+            g2 = au.createGain();
+          o.type = "sine";
+          o.frequency.value = 800;
+          o.frequency.exponentialRampToValueAtTime(400, au.currentTime + 0.15);
+          g2.gain.value = 0.1;
+          g2.gain.exponentialRampToValueAtTime(0.001, au.currentTime + 0.15);
+          o.connect(g2);
+          g2.connect(au.destination);
+          o.start();
+          o.stop(au.currentTime + 0.16);
+        }
+        function sndMiss() {
+          ea();
+          const o = au.createOscillator(),
+            g = au.createGain();
+          o.type = "triangle";
+          o.frequency.value = 200;
+          o.frequency.exponentialRampToValueAtTime(100, au.currentTime + 0.2);
+          g.gain.value = 0.06;
+          g.gain.exponentialRampToValueAtTime(0.001, au.currentTime + 0.2);
+          o.connect(g);
+          g.connect(au.destination);
+          o.start();
+          o.stop(au.currentTime + 0.21);
+        }
+        function sndCombo() {
+          ea();
+          [1, 1.25, 1.5].forEach((p, i) => {
+            setTimeout(() => {
+              const o = au.createOscillator(),
+                g = au.createGain();
+              o.type = "sine";
+              o.frequency.value = 600 * p;
+              g.gain.value = 0.07;
+              g.gain.exponentialRampToValueAtTime(0.001, au.currentTime + 0.1);
+              o.connect(g);
+              g.connect(au.destination);
+              o.start();
+              o.stop(au.currentTime + 0.11);
+            }, i * 50);
+          });
+        }
+
+        // Background music — layered procedural loop (melody + arpeggio + bass + percussion)
+        let bgmPlaying = false,
+          bgmMaster = null,
+          bgmTimers = [];
+        function startBgm() {
+          if (bgmPlaying) return;
+          ea();
+          if (au.state === "suspended") au.resume();
+          bgmPlaying = true;
+          bgmMaster = au.createGain();
+          bgmMaster.gain.value = 0.09;
+          bgmMaster.connect(au.destination);
+          const bpm = 130,
+            beat = 60 / bpm;
+          const R = -99; // rest
+          const toF = (s) => 261.63 * Math.pow(2, s / 12); // semitone to freq (C4=0)
+
+          // 64-beat melody — 4 sections of 16 beats each
+          const mel = [
+            // A: bright and bouncy
+            12,
+            R,
+            14,
+            12,
+            9,
+            7,
+            9,
+            R,
+            5,
+            7,
+            9,
+            12,
+            11,
+            R,
+            7,
+            R,
+            // A2: variation with higher peak
+            12,
+            R,
+            14,
+            16,
+            14,
+            12,
+            9,
+            R,
+            7,
+            9,
+            12,
+            9,
+            7,
+            R,
+            4,
+            R,
+            // B: contrasting, gentler
+            9,
+            R,
+            7,
+            5,
+            4,
+            5,
+            7,
+            R,
+            9,
+            11,
+            12,
+            9,
+            7,
+            R,
+            5,
+            R,
+            // B2: builds back to start
+            4,
+            R,
+            5,
+            7,
+            9,
+            12,
+            14,
+            R,
+            12,
+            11,
+            9,
+            7,
+            4,
+            R,
+            0,
+            R,
+          ];
+          // Chords: each lasts 4 beats [note1, note2, note3] as semitones from C4
+          const chords = [
+            [0, 4, 7],
+            [9, 12, 16],
+            [5, 9, 12],
+            [7, 11, 14], // C Am F G
+            [0, 4, 7],
+            [9, 12, 16],
+            [5, 9, 12],
+            [7, 11, 14], // C Am F G
+            [9, 12, 16],
+            [5, 9, 12],
+            [7, 11, 14],
+            [0, 4, 7], // Am F G C
+            [5, 9, 12],
+            [7, 11, 14],
+            [9, 12, 16],
+            [0, 4, 7], // F G Am C
+          ];
+          // Bass roots (one per 4 beats)
+          const bass = [0, -3, 5, 7, 0, -3, 5, 7, -3, 5, 7, 0, 5, 7, -3, 0];
+
+          let beatNum = 0;
+          const total = mel.length;
+
+          function sn(f, type, vol, dur, dl) {
+            // schedule note
+            if (!bgmPlaying) return;
+            const o = au.createOscillator(),
+              g = au.createGain();
+            o.type = type;
+            o.frequency.value = f;
+            g.gain.setValueAtTime(vol, au.currentTime + dl);
+            g.gain.exponentialRampToValueAtTime(0.001, au.currentTime + dl + dur * 0.92);
+            o.connect(g);
+            g.connect(bgmMaster);
+            o.start(au.currentTime + dl);
+            o.stop(au.currentTime + dl + dur);
+          }
+          function snoise(dur, vol, dl, hp) {
+            // schedule noise hit
+            if (!bgmPlaying) return;
+            const len = au.sampleRate * dur,
+              buf = au.createBuffer(1, len, au.sampleRate),
+              d = buf.getChannelData(0);
+            for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2);
+            const s = au.createBufferSource();
+            s.buffer = buf;
+            const g = au.createGain();
+            g.gain.value = vol;
+            const fl = au.createBiquadFilter();
+            fl.type = "highpass";
+            fl.frequency.value = hp;
+            s.connect(fl);
+            fl.connect(g);
+            g.connect(bgmMaster);
+            s.start(au.currentTime + dl);
+          }
+
+          function tick() {
+            if (!bgmPlaying) return;
+            const i = beatNum % total;
+            const ci = Math.floor(i / 4) % chords.length;
+
+            // Melody (triangle wave, warm tone)
+            if (mel[i] !== R) sn(toF(mel[i]), "triangle", 0.38, beat * 0.75, 0);
+
+            // Arpeggio — play chord tones in sequence (one octave up, sine, quiet)
+            const ch = chords[ci];
+            const arpNote = ch[i % 3];
+            sn(toF(arpNote + 12), "sine", 0.09, beat * 0.4, 0);
+
+            // Counter-melody — gentle harmony on offbeats (every other beat)
+            if (i % 2 === 1 && mel[i] !== R) {
+              const harm = mel[i] - 4; // a third below
+              if (harm > -5) sn(toF(harm), "sine", 0.06, beat * 0.5, 0);
+            }
+
+            // Bass (sustained sine, beat 0 & 2 of each chord)
+            if (i % 4 === 0) sn(toF(bass[ci] - 12), "sine", 0.45, beat * 3.5, 0);
+            if (i % 4 === 2) sn(toF(bass[ci] - 12), "sine", 0.22, beat * 1.5, 0);
+
+            // Kick drum (beats 0, 2)
+            if (i % 4 === 0 || i % 4 === 2) {
+              const ko = au.createOscillator(),
+                kg = au.createGain();
+              ko.type = "sine";
+              ko.frequency.setValueAtTime(150, au.currentTime);
+              ko.frequency.exponentialRampToValueAtTime(35, au.currentTime + 0.12);
+              kg.gain.setValueAtTime(0.2, au.currentTime);
+              kg.gain.exponentialRampToValueAtTime(0.001, au.currentTime + 0.15);
+              ko.connect(kg);
+              kg.connect(bgmMaster);
+              ko.start();
+              ko.stop(au.currentTime + 0.16);
+            }
+            // Hi-hat every beat + lighter offbeat
+            snoise(0.04, 0.1, 0, 9000);
+            snoise(0.025, 0.05, beat * 0.5, 11000);
+
+            beatNum++;
+            bgmTimers.push(setTimeout(tick, beat * 1000));
+          }
+          tick();
+        }
+        function stopBgm() {
+          bgmPlaying = false;
+          bgmTimers.forEach((t) => clearTimeout(t));
+          bgmTimers = [];
+          if (bgmMaster) {
+            bgmMaster.gain.exponentialRampToValueAtTime(0.001, au.currentTime + 0.3);
+            setTimeout(() => {
+              if (bgmMaster) {
+                bgmMaster.disconnect();
+                bgmMaster = null;
+              }
+            }, 400);
+          }
+        }
+
+        // Infinite mode: difficulty scales with elapsed time
+        // Eggs are limited. Hits earn eggs back. Miss = lost egg. 0 eggs = game over.
+        let running = false,
+          paused = false;
+        let score, elapsed, eggsLeft, eggsMax, combo, hits, misses, maxCombo;
+        let gameOverTimer;
+        let lastT = 0,
+          animId = null,
+          cdI = null;
+        let shakeX = 0,
+          shakeY = 0,
+          shakeDur = 0;
+        let showHint = true,
+          hintAlpha = 1;
+
+        // Difficulty curve based on elapsed time
+        function difficulty() {
+          const t = elapsed;
+          const s = score;
+          return {
+            bunnySpd: 0.7 + s * 0.0012,                      // 1.0x at 250pts, 1.3x at 500pts, 1.9x at 1000pts
+            hideTime: Math.max(0.15, 0.45 - s * 0.0004),     // min 0.15s at ~750pts
+            peekTime: Math.max(0.5, 1.4 - s * 0.0012),       // min 0.5s at ~750pts
+            headPeekChance: Math.min(0.35, 0.05 + s * 0.0004),// 35% at ~750pts
+            headPeekTime: Math.max(0.35, 1.0 - s * 0.001),   // min 0.35s at 650pts
+            leaveChance: Math.min(0.5, 0.15 + s * 0.0005),   // 50% at 700pts
+            fakeChance: Math.min(0.3, 0.08 + s * 0.0004),    // 30% at ~550pts
+          };
+        }
+
+        // Bunny state
+        let bunny = {
+          x: 0,
+          y: 0,
+          state: "idle",
+          stateTimer: 0,
+          targetX: 0,
+          targetY: 0,
+          dir: 1,
+          hitFlash: 0,
+          coverIdx: -1,
+          peekDir: 0,
+          visible: true,
+          speed: 180,
+          scale: 1,
+          jumpT: 0,
+          hideProgress: 0,
+        };
+
+        let covers = [];
+        let projectiles = [];
+        let particles = [];
+        let splats = [];
+        let texts = [];
+        let confetti = [];
+
+        function getHS() {
+          return +(localStorage.getItem("eet_hs_inf") || 0);
+        }
+        function setHS(v) {
+          localStorage.setItem("eet_hs_inf", v);
+        }
+
+        const $ = (id) => document.getElementById(id);
+        function groundY() {
+          return H * 0.82;
+        }
+
+        // Generate covers - good spacing, responsive to viewport
+        function generateCovers() {
+          const gy = groundY();
+          covers = [];
+          const isSmall = W < 600;
+          const s = isSmall ? 0.7 : 1;
+          const baseTypes = ["bush", "tree", "house", "fence", "rock", "bush"];
+          const count = Math.min(baseTypes.length, Math.max(3, Math.floor(W / (isSmall ? 160 : 220))));
+          const margin = isSmall ? 50 : 100;
+          const usable = W - margin * 2;
+          const spacing = usable / count;
+          for (let i = 0; i < count; i++) {
+            const cx = margin + spacing * (i + 0.5);
+            const t = baseTypes[i % baseTypes.length];
+            let cw, ch;
+            if (t === "bush") {
+              cw = rand(90, 120) * s;
+              ch = rand(65, 85) * s;
+            } else if (t === "tree") {
+              cw = rand(65, 85) * s;
+              ch = rand(115, 150) * s;
+            } else if (t === "house") {
+              cw = rand(95, 115) * s;
+              ch = rand(100, 125) * s;
+            } else if (t === "fence") {
+              cw = rand(70, 90) * s;
+              ch = rand(55, 68) * s;
+            } else {
+              cw = rand(65, 85) * s;
+              ch = rand(55, 70) * s;
+            }
+            covers.push({
+              x: cx,
+              y: gy,
+              w: cw,
+              h: ch,
+              type: t,
+              peekLeft: cx - cw / 2 - 35 * s,
+              peekRight: cx + cw / 2 + 35 * s,
+              peekY: gy,
+              topY: gy - ch + 8,
+              winX: cx,
+              winY: gy - ch * 0.35,
+              winW: cw * 0.28,
+              winH: ch * 0.2,
+            });
+          }
+          generateBgDecor();
+        }
+
+        // ==================== BUNNY AI ====================
+        function bunnyAI(dt) {
+          const diff = difficulty();
+          const gy = groundY();
+          bunny.hitFlash = Math.max(0, bunny.hitFlash - dt);
+          bunny.stateTimer -= dt;
+
+          // Smooth hide/show
+          if (bunny.state === "hiding" || bunny.state === "moving_to_cover") {
+            bunny.hideProgress = Math.min(1, bunny.hideProgress + dt * 4);
+          } else if (
+            bunny.state === "peeking" ||
+            bunny.state === "head_peeking" ||
+            bunny.state === "fake_peek" ||
+            bunny.state === "side_swap" ||
+            bunny.state === "taunt_peek"
+          ) {
+            bunny.hideProgress = Math.max(0, bunny.hideProgress - dt * 5);
+          } else {
+            bunny.hideProgress = Math.max(0, bunny.hideProgress - dt * 6);
+          }
+
+          // Only pick a new action when bunny is in the open (not in cover states)
+          const inOpen = bunny.state === "running" || bunny.state === "jumping" || bunny.state === "taunt" || bunny.state === "idle";
+          if (inOpen && bunny.stateTimer <= 0) {
+            const r = Math.random();
+            if (r < 0.45 && covers.length > 0) {
+              // Move to nearest cover from current position
+              bunny.state = "moving_to_cover";
+              let best = -1, bestD = Infinity;
+              for (let ci = 0; ci < covers.length; ci++) {
+                const dd = Math.abs(covers[ci].x - bunny.x);
+                if (dd > 30 && dd < bestD) { bestD = dd; best = ci; }
+              }
+              bunny.coverIdx = best >= 0 ? best : randI(0, covers.length - 1);
+              const c = covers[bunny.coverIdx];
+              bunny.targetX = c.x;
+              bunny.targetY = gy;
+              bunny.speed = 140 * diff.bunnySpd;
+              bunny.visible = true;
+              bunny.stateTimer = 4;
+            } else if (r < 0.7) {
+              bunny.state = "running";
+              bunny.targetX = clamp(bunny.x + (Math.random() < 0.5 ? -1 : 1) * rand(80, 180), 80, W - 80);
+              bunny.targetY = gy;
+              bunny.speed = rand(100, 160) * diff.bunnySpd;
+              bunny.visible = true;
+              bunny.stateTimer = 2.5;
+            } else if (r < 0.85) {
+              bunny.state = "jumping";
+              bunny.targetX = clamp(bunny.x + (Math.random() < 0.5 ? -1 : 1) * rand(80, 180), 80, W - 80);
+              bunny.targetY = gy;
+              bunny.speed = rand(120, 180) * diff.bunnySpd;
+              bunny.jumpT = 0;
+              bunny.visible = true;
+              bunny.stateTimer = 2.5;
+            } else {
+              bunny.state = "taunt";
+              bunny.stateTimer = rand(0.8, 1.5) / diff.bunnySpd;
+              bunny.visible = true;
+            }
+          }
+
+          if (bunny.state === "moving_to_cover") {
+            const dx = bunny.targetX - bunny.x;
+            bunny.dir = dx > 0 ? 1 : -1;
+            bunny.x += Math.sign(dx) * bunny.speed * dt;
+            bunny.y = gy; // always on ground while running to cover
+            if (Math.abs(dx) < 10) {
+              // Arrived at cover — hide
+              bunny.state = "hiding";
+              bunny.stateTimer = Math.min(0.5, diff.hideTime) + rand(0, 0.1);
+              bunny.visible = false;
+              const c = covers[bunny.coverIdx];
+              bunny.x = c.x;
+              bunny.y = gy;
+            } else if (bunny.stateTimer <= 0) {
+              // Took too long to reach cover — just keep running in place
+              // (prevents timeout from triggering wrong state)
+              bunny.stateTimer = 1;
+            }
+          } else if (bunny.state === "hiding") {
+            bunny.visible = false;
+            if (bunny.stateTimer <= 0) {
+              const c = covers[bunny.coverIdx];
+              // Escalating peek patterns based on score
+              const fakeChance = diff.fakeChance;
+              const sideSwapChance = Math.min(0.2, score * 0.0005);
+              const tauntPeekChance = Math.min(0.15, 0.02 + score * 0.0004);
+              const r = Math.random();
+
+              if (r < fakeChance) {
+                // Fake peek — quick head pop then duck back
+                bunny.state = "fake_peek";
+                if (c.type === "house") {
+                  bunny.x = c.winX;
+                  bunny.y = c.winY;
+                } else {
+                  bunny.x = c.x + rand(-c.w * 0.2, c.w * 0.2);
+                  bunny.y = c.topY;
+                }
+                bunny.visible = true;
+                bunny.stateTimer = rand(0.25, 0.45);
+              } else if (r < fakeChance + sideSwapChance) {
+                // Side swap — peek one side, duck, peek the other
+                bunny.state = "side_swap";
+                bunny.peekDir = Math.random() < 0.5 ? -1 : 1;
+                bunny.dir = bunny.peekDir;
+                bunny.x = bunny.peekDir < 0 ? c.peekLeft : c.peekRight;
+                bunny.y = c.peekY;
+                bunny.visible = true;
+                bunny.stateTimer = rand(0.5, 0.8); // first side duration
+                bunny.sideSwapPhase = 0; // 0=first side, 1=ducking, 2=second side
+              } else if (r < fakeChance + sideSwapChance + tauntPeekChance) {
+                // Taunt peek — peeks and waves, stays longer, bonus points
+                bunny.state = "taunt_peek";
+                bunny.peekDir = Math.random() < 0.5 ? -1 : 1;
+                bunny.dir = bunny.peekDir;
+                bunny.x = bunny.peekDir < 0 ? c.peekLeft : c.peekRight;
+                bunny.y = c.peekY;
+                bunny.visible = true;
+                bunny.stateTimer = diff.peekTime * 1.4 + rand(0.2, 0.5);
+              } else if (Math.random() < diff.headPeekChance) {
+                // Head peek — ears pop above cover, or face in window for houses
+                bunny.state = "head_peeking";
+                if (c.type === "house") {
+                  bunny.x = c.winX;
+                  bunny.y = c.winY;
+                } else {
+                  bunny.x = c.x + rand(-c.w * 0.2, c.w * 0.2);
+                  bunny.y = c.topY;
+                }
+                bunny.visible = true;
+                bunny.stateTimer = diff.headPeekTime + rand(0, 0.3);
+              } else {
+                // Side peek
+                bunny.state = "peeking";
+                bunny.peekDir = Math.random() < 0.5 ? -1 : 1;
+                bunny.dir = bunny.peekDir; // face outward
+                bunny.x = bunny.peekDir < 0 ? c.peekLeft : c.peekRight;
+                bunny.y = c.peekY;
+                bunny.visible = true;
+                bunny.stateTimer = diff.peekTime + rand(0, 0.3);
+              }
+            }
+          } else if (bunny.state === "peeking") {
+            const c = covers[bunny.coverIdx];
+            bunny.y = c.peekY + Math.sin(bunny.stateTimer * 8) * 3;
+            if (bunny.stateTimer <= 0) {
+              // After peeking: mostly re-hide and peek again, sometimes leave
+              const leaveChance = diff.leaveChance;
+              if (Math.random() < leaveChance) {
+                // Leave the cover visibly
+                const coverDashChance = Math.min(0.3, score * 0.0006);
+                if (Math.random() < coverDashChance && covers.length > 1) {
+                  // Cover-to-cover dash
+                  let nearest = -1, nd = Infinity;
+                  for (let ci = 0; ci < covers.length; ci++) {
+                    if (ci === bunny.coverIdx) continue;
+                    const dd = Math.abs(covers[ci].x - bunny.x);
+                    if (dd > 80 && dd < nd) { nd = dd; nearest = ci; }
+                  }
+                  if (nearest >= 0) {
+                    bunny.state = "moving_to_cover";
+                    bunny.coverIdx = nearest;
+                    bunny.targetX = covers[nearest].x;
+                    bunny.targetY = gy;
+                    bunny.speed = rand(180, 260) * diff.bunnySpd;
+                    bunny.visible = true;
+                    bunny.stateTimer = 2.5;
+                  } else {
+                    bunny.state = "running";
+                    bunny.visible = true;
+                    bunny.targetX = clamp(bunny.x + (Math.random() < 0.5 ? -1 : 1) * rand(100, 200), 80, W - 80);
+                    bunny.speed = rand(100, 160) * diff.bunnySpd;
+                    bunny.stateTimer = 2;
+                  }
+                } else {
+                  bunny.state = "running";
+                  bunny.visible = true;
+                  bunny.targetX = clamp(bunny.x + (Math.random() < 0.5 ? -1 : 1) * rand(100, 200), 80, W - 80);
+                  bunny.speed = rand(100, 160) * diff.bunnySpd;
+                  bunny.stateTimer = 2;
+                }
+              } else {
+                // Stay at same cover — duck and peek again
+                bunny.state = "hiding";
+                bunny.stateTimer = rand(0.15, 0.4);
+                bunny.visible = false;
+                bunny.x = covers[bunny.coverIdx].x;
+                bunny.y = gy;
+              }
+            }
+          } else if (bunny.state === "head_peeking") {
+            const c = covers[bunny.coverIdx];
+            bunny.y = c.topY + Math.sin(bunny.stateTimer * 6) * 4 - 2;
+            if (bunny.stateTimer <= 0) {
+              // After head peeking: mostly re-hide and peek again
+              if (Math.random() < diff.leaveChance) {
+                bunny.state = "running";
+                bunny.visible = true;
+                bunny.y = gy;
+                bunny.targetX = clamp(bunny.x + (Math.random() < 0.5 ? -1 : 1) * rand(100, 200), 80, W - 80);
+                bunny.speed = rand(100, 160) * diff.bunnySpd;
+                bunny.stateTimer = 2;
+              } else {
+                // Stay at same cover
+                bunny.state = "hiding";
+                bunny.stateTimer = rand(0.15, 0.4);
+                bunny.visible = false;
+                bunny.x = c.x;
+                bunny.y = gy;
+              }
+            }
+          } else if (bunny.state === "fake_peek") {
+            const c = covers[bunny.coverIdx];
+            bunny.y = c.topY + Math.sin(bunny.stateTimer * 10) * 3 - 2;
+            if (bunny.stateTimer <= 0) {
+              bunny.state = "hiding";
+              bunny.stateTimer = rand(0.2, 0.4);
+              bunny.visible = false;
+              bunny.x = c.x;
+              bunny.y = gy;
+            }
+          } else if (bunny.state === "side_swap") {
+            const c = covers[bunny.coverIdx];
+            if (bunny.sideSwapPhase === 0) {
+              // First side peek
+              bunny.y = c.peekY + Math.sin(bunny.stateTimer * 8) * 3;
+              bunny.visible = true;
+              if (bunny.stateTimer <= 0) {
+                // Duck behind cover
+                bunny.sideSwapPhase = 1;
+                bunny.visible = false;
+                bunny.x = c.x;
+                bunny.y = gy;
+                bunny.stateTimer = rand(0.15, 0.3); // brief duck
+              }
+            } else if (bunny.sideSwapPhase === 1) {
+              // Ducking between sides
+              bunny.visible = false;
+              if (bunny.stateTimer <= 0) {
+                // Pop out the other side
+                bunny.sideSwapPhase = 2;
+                bunny.peekDir *= -1;
+                bunny.dir = bunny.peekDir;
+                bunny.x = bunny.peekDir < 0 ? c.peekLeft : c.peekRight;
+                bunny.y = c.peekY;
+                bunny.visible = true;
+                bunny.stateTimer = rand(0.4, 0.7); // second side duration
+              }
+            } else {
+              // Second side peek
+              bunny.y = c.peekY + Math.sin(bunny.stateTimer * 8) * 3;
+              bunny.visible = true;
+              if (bunny.stateTimer <= 0) {
+                // Leave cover or hide again
+                if (Math.random() < 0.75) {
+                  bunny.state = "running";
+                  bunny.visible = true;
+                  bunny.y = gy;
+                  bunny.targetX = bunny.x + (Math.random() < 0.5 ? -1 : 1) * rand(120, 280);
+                  bunny.targetX = clamp(bunny.targetX, 80, W - 80);
+                  bunny.speed = rand(100, 160) * diff.bunnySpd;
+                  bunny.stateTimer = 3;
+                } else {
+                  bunny.state = "hiding";
+                  bunny.stateTimer = rand(0.3, 0.6);
+                  bunny.visible = false;
+                  bunny.x = c.x;
+                  bunny.y = gy;
+                }
+              }
+            }
+          } else if (bunny.state === "taunt_peek") {
+            const c = covers[bunny.coverIdx];
+            bunny.y = c.peekY + Math.sin(bunny.stateTimer * 6) * 3;
+            bunny.visible = true;
+            if (bunny.stateTimer <= 0) {
+              bunny.state = "running";
+              bunny.visible = true;
+              bunny.y = gy;
+              bunny.targetX = bunny.x + (Math.random() < 0.5 ? -1 : 1) * rand(120, 280);
+              bunny.targetX = clamp(bunny.targetX, 80, W - 80);
+              bunny.speed = rand(100, 160) * diff.bunnySpd;
+              bunny.stateTimer = 3;
+            }
+          } else if (bunny.state === "running") {
+            const dx = bunny.targetX - bunny.x;
+            bunny.dir = dx > 0 ? 1 : -1;
+            bunny.x += Math.sign(dx) * bunny.speed * dt;
+            bunny.y = gy + Math.sin(bunny.stateTimer * 12) * 3;
+            if (Math.abs(dx) < 10) {
+              bunny.y = gy;
+              bunny.stateTimer = 0;
+            }
+          } else if (bunny.state === "jumping") {
+            bunny.jumpT += dt * 2;
+            const dx = bunny.targetX - bunny.x;
+            bunny.dir = dx > 0 ? 1 : -1;
+            bunny.x += Math.sign(dx) * bunny.speed * dt;
+            const jumpH = 80 + Math.sin(bunny.jumpT * Math.PI) * 60;
+            bunny.y = gy - Math.abs(Math.sin(bunny.jumpT * Math.PI * 2)) * jumpH;
+            if (Math.abs(dx) < 10) {
+              bunny.stateTimer = 0;
+              bunny.y = gy;
+            }
+          } else if (bunny.state === "taunt") {
+            bunny.y = gy + Math.sin(bunny.stateTimer * 10) * 2;
+          } else if (bunny.state === "idle") {
+            bunny.visible = true;
+            bunny.y = gy;
+            // Transition out of idle immediately (once, not every frame)
+            bunny.state = "running";
+            bunny.targetX = clamp(bunny.x + (Math.random() < 0.5 ? -1 : 1) * rand(60, 150), 80, W - 80);
+            bunny.speed = rand(80, 130) * diff.bunnySpd;
+            bunny.stateTimer = 2;
+          }
+          bunny.x = clamp(bunny.x, 50, W - 50);
+        }
+
+        // ==================== BACKGROUND ====================
+        let bgFlowers = [],
+          bgButterflies = [],
+          bgTrees = [],
+          bgEggs = [],
+          bgBirds = [];
+        function generateBgDecor() {
+          bgFlowers = [];
+          bgButterflies = [];
+          bgTrees = [];
+          bgEggs = [];
+          bgBirds = [];
+          const gy = groundY();
+          const treeCount = Math.max(3, Math.floor(W / 280));
+          for (let i = 0; i < treeCount; i++) {
+            let tx = (i + 0.5) * (W / treeCount) + rand(-30, 30);
+            for (const c of covers) {
+              if (Math.abs(tx - c.x) < 80) tx += tx < c.x ? -50 : 50;
+            }
+            bgTrees.push({
+              x: clamp(tx, 40, W - 40),
+              scale: rand(0.35, 0.55),
+              hue: randI(108, 135),
+            });
+          }
+          for (let i = 0; i < Math.floor(W / 55); i++) {
+            bgFlowers.push({
+              x: rand(10, W - 10),
+              y: gy + rand(10, 28),
+              petals: randI(4, 6),
+              petalColor: pick(["#f48fb1", "#ce93d8", "#fff176", "#ffcc80", "#90caf9", "#ff8a65"]),
+              centerColor: pick(["#ffd54f", "#fff9c4", "#ffab40"]),
+              size: rand(3, 5),
+              stemH: rand(10, 22),
+            });
+          }
+          for (let i = 0; i < 3; i++) {
+            bgButterflies.push({
+              x: 0,
+              y: 0,
+              baseX: rand(80, W - 80),
+              baseY: rand(gy * 0.35, gy * 0.6),
+              color: pick(["#f48fb1", "#ce93d8", "#fff176", "#90caf9", "#a5d6a7"]),
+              phase: rand(0, Math.PI * 2),
+              speed: rand(0.7, 1.3),
+              wingPhase: rand(0, 6),
+            });
+          }
+          for (let i = 0; i < Math.floor(W / 130); i++) {
+            bgEggs.push({
+              x: rand(20, W - 20),
+              y: gy + rand(6, 18),
+              color: pick([
+                "#ffcdd2",
+                "#f8bbd0",
+                "#e1bee7",
+                "#c5cae9",
+                "#b3e5fc",
+                "#fff9c4",
+                "#ffe0b2",
+                "#c8e6c9",
+              ]),
+              band: pick([
+                "#e57373",
+                "#f06292",
+                "#ba68c8",
+                "#7986cb",
+                "#4fc3f7",
+                "#fff176",
+                "#ffb74d",
+                "#81c784",
+              ]),
+              size: rand(6, 10),
+              tilt: rand(-0.3, 0.3),
+            });
+          }
+          for (let i = 0; i < 3; i++) {
+            bgBirds.push({
+              baseX: rand(60, W - 60),
+              baseY: rand(30, gy * 0.25),
+              phase: rand(0, Math.PI * 2),
+              speed: rand(0.5, 1),
+              flapPhase: rand(0, 6),
+            });
+          }
+        }
+
+        // ==================== DRAWING ====================
+        function drawSky(t) {
+          const gy = groundY();
+          const g = X.createLinearGradient(0, 0, 0, gy);
+          g.addColorStop(0, "#1a7dd4");
+          g.addColorStop(0.35, "#4da6e8");
+          g.addColorStop(0.65, "#8ec8f0");
+          g.addColorStop(0.85, "#d4ecd0");
+          g.addColorStop(1, "#b8d8a0");
+          X.fillStyle = g;
+          X.fillRect(0, 0, W, H);
+
+          // Sun
+          const sx = W * 0.82,
+            sy = gy * 0.2;
+          const glow1 = X.createRadialGradient(sx, sy, 10, sx, sy, 200);
+          glow1.addColorStop(0, "rgba(255,248,200,.4)");
+          glow1.addColorStop(0.25, "rgba(255,241,118,.15)");
+          glow1.addColorStop(1, "rgba(255,241,118,0)");
+          X.fillStyle = glow1;
+          X.beginPath();
+          X.arc(sx, sy, 200, 0, Math.PI * 2);
+          X.fill();
+          const sd = X.createRadialGradient(sx - 5, sy - 5, 4, sx, sy, 32);
+          sd.addColorStop(0, "#fffde7");
+          sd.addColorStop(0.4, "#ffd54f");
+          sd.addColorStop(1, "#f9a825");
+          X.fillStyle = sd;
+          X.beginPath();
+          X.arc(sx, sy, 32, 0, Math.PI * 2);
+          X.fill();
+          // Sun rays
+          X.save();
+          X.translate(sx, sy);
+          X.strokeStyle = "rgba(255,235,130,.12)";
+          X.lineWidth = 3;
+          X.lineCap = "round";
+          for (let i = 0; i < 12; i++) {
+            const a = i * ((Math.PI * 2) / 12) + t * 0.0002;
+            X.beginPath();
+            X.moveTo(Math.cos(a) * 38, Math.sin(a) * 38);
+            X.lineTo(Math.cos(a) * 55, Math.sin(a) * 55);
+            X.stroke();
+          }
+          X.restore();
+
+          // Clouds
+          [
+            { spd: 0.007, y: gy * 0.14, s: 1.2, w: 95 },
+            { spd: 0.011, y: gy * 0.26, s: 0.85, w: 72 },
+            { spd: 0.005, y: gy * 0.18, s: 1.4, w: 105 },
+            { spd: 0.014, y: gy * 0.36, s: 0.7, w: 58 },
+          ].forEach((cl, i) => {
+            const cx = ((t * cl.spd + i * 380) % (W + 500)) - 250;
+            X.save();
+            X.translate(cx, cl.y);
+            const cw = cl.w,
+              ch = cw * 0.45;
+            X.fillStyle = "rgba(140,180,210,.06)";
+            X.beginPath();
+            X.ellipse(cw * 0.5, ch * 0.4, cw * 0.52, ch * 0.22, 0, 0, Math.PI * 2);
+            X.fill();
+            const cg = X.createRadialGradient(
+              cw * 0.4,
+              -ch * 0.1,
+              cw * 0.1,
+              cw * 0.5,
+              ch * 0.1,
+              cw * 0.6,
+            );
+            cg.addColorStop(0, "rgba(255,255,255,.94)");
+            cg.addColorStop(1, "rgba(245,250,255,.55)");
+            X.fillStyle = cg;
+            X.beginPath();
+            X.arc(cw * 0.2, 0, ch * 0.7, 0, Math.PI * 2);
+            X.arc(cw * 0.5, -ch * 0.22, ch * 0.9, 0, Math.PI * 2);
+            X.arc(cw * 0.8, 0, ch * 0.65, 0, Math.PI * 2);
+            X.arc(cw * 0.35, ch * 0.12, ch * 0.55, 0, Math.PI * 2);
+            X.arc(cw * 0.65, ch * 0.08, ch * 0.5, 0, Math.PI * 2);
+            X.fill();
+            X.restore();
+          });
+
+          // Rainbow — arc centered AT ground level so ends touch the ground
+          const rbX = W * 0.45,
+            rbY = gy,
+            rbR = gy * 0.65;
+          X.save();
+          [
+            "rgba(229,115,115,.2)",
+            "rgba(255,183,77,.18)",
+            "rgba(255,241,118,.18)",
+            "rgba(129,199,132,.18)",
+            "rgba(100,181,246,.18)",
+            "rgba(126,87,194,.14)",
+          ].forEach((c, i) => {
+            X.strokeStyle = c;
+            X.lineWidth = 13;
+            X.beginPath();
+            X.arc(rbX, rbY, Math.max(1, rbR - i * 14), Math.PI, 0);
+            X.stroke();
+          });
+          X.restore();
+
+          // Far hills
+          const hf = X.createLinearGradient(0, gy - 75, 0, gy);
+          hf.addColorStop(0, "#9cc098");
+          hf.addColorStop(1, "#80b57a");
+          X.fillStyle = hf;
+          X.beginPath();
+          X.moveTo(-10, gy);
+          X.bezierCurveTo(W * 0.1, gy - 55, W * 0.22, gy - 20, W * 0.38, gy - 48);
+          X.bezierCurveTo(W * 0.52, gy - 72, W * 0.68, gy - 25, W * 0.82, gy - 42);
+          X.bezierCurveTo(W * 0.92, gy - 58, W * 1.02, gy - 18, W + 10, gy);
+          X.lineTo(W + 10, gy);
+          X.fill();
+          // Mid hills
+          const hm = X.createLinearGradient(0, gy - 45, 0, gy);
+          hm.addColorStop(0, "#6faa40");
+          hm.addColorStop(1, "#4d8c2a");
+          X.fillStyle = hm;
+          X.beginPath();
+          X.moveTo(-10, gy);
+          X.bezierCurveTo(W * 0.15, gy - 34, W * 0.3, gy - 5, W * 0.48, gy - 24);
+          X.bezierCurveTo(W * 0.62, gy - 40, W * 0.8, gy - 8, W + 10, gy);
+          X.fill();
+        }
+
+        function drawBgTrees() {
+          const gy = groundY();
+          bgTrees.forEach((tr) => {
+            const tx = tr.x,
+              s = tr.scale,
+              hue = tr.hue;
+            X.save();
+            X.translate(tx, gy - 2);
+            X.scale(s, s);
+            X.fillStyle = "rgba(0,0,0,.08)";
+            X.beginPath();
+            X.ellipse(12, 6, 22, 5, 0.1, 0, Math.PI * 2);
+            X.fill();
+            const tk = X.createLinearGradient(-7, 0, 7, 0);
+            tk.addColorStop(0, "#4e342e");
+            tk.addColorStop(0.35, "#6d4c41");
+            tk.addColorStop(0.65, "#5d4037");
+            tk.addColorStop(1, "#3e2723");
+            X.fillStyle = tk;
+            X.beginPath();
+            X.moveTo(-8, 0);
+            X.bezierCurveTo(-7, -20, -6, -40, -5, -60);
+            X.lineTo(5, -60);
+            X.bezierCurveTo(6, -40, 7, -20, 8, 0);
+            X.fill();
+            X.strokeStyle = "rgba(40,25,18,.15)";
+            X.lineWidth = 1;
+            for (let i = 0; i < 4; i++) {
+              const bx = -3 + i * 2.5;
+              X.beginPath();
+              X.moveTo(bx, -5 - i * 4);
+              X.lineTo(bx - 1, -45 + i * 3);
+              X.stroke();
+            }
+            [
+              { x: 0, y: -65, rx: 30, ry: 26, h: hue, l: 28 },
+              { x: -16, y: -56, rx: 20, ry: 18, h: hue + 5, l: 30 },
+              { x: 14, y: -58, rx: 19, ry: 17, h: hue - 3, l: 31 },
+              { x: -6, y: -78, rx: 18, ry: 16, h: hue + 3, l: 33 },
+              { x: 8, y: -74, rx: 16, ry: 14, h: hue - 2, l: 35 },
+              { x: 0, y: -84, rx: 13, ry: 11, h: hue + 2, l: 38 },
+            ].forEach((l) => {
+              const fg = X.createRadialGradient(
+                l.x - l.rx * 0.2,
+                l.y - l.ry * 0.3,
+                2,
+                l.x,
+                l.y,
+                Math.max(l.rx, l.ry),
+              );
+              fg.addColorStop(0, `hsl(${l.h},52%,${l.l + 10}%)`);
+              fg.addColorStop(0.6, `hsl(${l.h},48%,${l.l}%)`);
+              fg.addColorStop(1, `hsl(${l.h},45%,${l.l - 5}%)`);
+              X.fillStyle = fg;
+              X.beginPath();
+              X.ellipse(l.x, l.y, l.rx, l.ry, 0, 0, Math.PI * 2);
+              X.fill();
+            });
+            X.fillStyle = "rgba(180,220,170,.12)";
+            X.beginPath();
+            X.ellipse(-8, -80, 8, 6, -0.2, 0, Math.PI * 2);
+            X.fill();
+            X.restore();
+          });
+        }
+
+        function drawGround(t) {
+          const gy = groundY();
+          const gf = X.createLinearGradient(0, gy, 0, H);
+          gf.addColorStop(0, "#5cb860");
+          gf.addColorStop(0.15, "#4caf50");
+          gf.addColorStop(0.5, "#43a047");
+          gf.addColorStop(1, "#2e7d32");
+          X.fillStyle = gf;
+          X.beginPath();
+          X.moveTo(0, gy + 2);
+          for (let x = 0; x <= W; x += 5)
+            X.lineTo(x, gy + 2 + Math.sin(x * 0.007) * 4 + Math.sin(x * 0.019) * 2);
+          X.lineTo(W, H);
+          X.lineTo(0, H);
+          X.fill();
+          X.fillStyle = "rgba(76,175,80,.15)";
+          for (let i = 0; i < 6; i++) {
+            const px = ((i * W) / 5 + 80) % W;
+            const py = gy + 20 + i * 12;
+            X.beginPath();
+            X.ellipse(px, py, 50, 14, 0, 0, Math.PI * 2);
+            X.fill();
+          }
+          X.fillStyle = "rgba(141,110,99,.06)";
+          X.beginPath();
+          X.moveTo(W * 0.1, H);
+          X.bezierCurveTo(W * 0.2, H - 35, W * 0.4, H - 15, W * 0.6, H - 30);
+          X.bezierCurveTo(W * 0.8, H - 45, W * 0.95, H - 10, W, H - 25);
+          X.lineTo(W, H);
+          X.lineTo(0, H);
+          X.fill();
+          X.lineCap = "round";
+          for (let i = 0; i < 70; i++) {
+            const gx = (i * 47 + 23) % W;
+            const fy = gy + 4 + ((i * 31) % 15);
+            const sway = Math.sin(t * 0.0018 + i * 0.6) * 2;
+            const h = 8 + ((i * 17) % 14);
+            const hue = 115 + ((i * 9) % 25);
+            const lit = 30 + ((i * 11) % 18);
+            X.strokeStyle = `hsl(${hue},52%,${lit}%)`;
+            X.lineWidth = 1.2 + ((i * 7) % 3) * 0.4;
+            X.beginPath();
+            X.moveTo(gx, fy);
+            X.quadraticCurveTo(gx + sway, fy - h * 0.5, gx + sway * 2, fy - h);
+            X.stroke();
+          }
+          bgFlowers.forEach((f, i) => {
+            const sway = Math.sin(t * 0.0012 + i * 0.9) * 1.2;
+            X.strokeStyle = "#4a7c28";
+            X.lineWidth = 1.5;
+            X.lineCap = "round";
+            X.beginPath();
+            X.moveTo(f.x, f.y);
+            X.quadraticCurveTo(f.x + sway, f.y - f.stemH * 0.5, f.x + sway, f.y - f.stemH);
+            X.stroke();
+            const fx = f.x + sway,
+              fy = f.y - f.stemH;
+            for (let p = 0; p < f.petals; p++) {
+              const a = ((Math.PI * 2) / f.petals) * p;
+              X.fillStyle = f.petalColor;
+              X.globalAlpha = 0.9;
+              X.beginPath();
+              X.ellipse(
+                fx + Math.cos(a) * f.size * 0.6,
+                fy + Math.sin(a) * f.size * 0.6,
+                f.size * 0.5,
+                f.size * 0.3,
+                a,
+                0,
+                Math.PI * 2,
+              );
+              X.fill();
+            }
+            X.globalAlpha = 1;
+            X.fillStyle = f.centerColor;
+            X.beginPath();
+            X.arc(fx, fy, f.size * 0.28, 0, Math.PI * 2);
+            X.fill();
+          });
+        }
+
+        function drawBirds(t) {
+          bgBirds.forEach((b) => {
+            const bx = b.baseX + Math.sin(t * 0.0004 * b.speed + b.phase) * 100;
+            const by = b.baseY + Math.sin(t * 0.0007 * b.speed + b.phase + 2) * 12;
+            const flap = Math.sin(t * 0.01 + b.flapPhase);
+            X.save();
+            X.translate(bx, by);
+            X.strokeStyle = "rgba(50,50,70,.4)";
+            X.lineWidth = 2;
+            X.lineCap = "round";
+            X.beginPath();
+            X.moveTo(-8, flap * 3);
+            X.quadraticCurveTo(-4, -3 - flap * 4, 0, 0);
+            X.quadraticCurveTo(4, -3 - flap * 4, 8, flap * 3);
+            X.stroke();
+            X.restore();
+          });
+        }
+        function drawButterflies(t) {
+          bgButterflies.forEach((b) => {
+            b.x = b.baseX + Math.sin(t * 0.0008 * b.speed + b.phase) * 45;
+            b.y = b.baseY + Math.sin(t * 0.0012 * b.speed + b.phase + 1) * 18;
+            const wa = Math.sin(t * 0.012 + b.wingPhase) * 0.5;
+            X.save();
+            X.translate(b.x, b.y);
+            X.globalAlpha = 0.65;
+            X.fillStyle = b.color;
+            X.save();
+            X.rotate(-wa - 0.2);
+            X.beginPath();
+            X.ellipse(-3, -1, 5, 3.5, -0.2, 0, Math.PI * 2);
+            X.fill();
+            X.restore();
+            X.save();
+            X.rotate(wa + 0.2);
+            X.beginPath();
+            X.ellipse(3, -1, 5, 3.5, 0.2, 0, Math.PI * 2);
+            X.fill();
+            X.restore();
+            X.globalAlpha = 1;
+            X.fillStyle = "#444";
+            X.fillRect(-0.7, -0.5, 1.4, 4);
+            X.restore();
+          });
+        }
+        function drawGrassEggs() {
+          bgEggs.forEach((e) => {
+            X.save();
+            X.translate(e.x, e.y);
+            X.rotate(e.tilt);
+            X.fillStyle = "rgba(0,0,0,.06)";
+            X.beginPath();
+            X.ellipse(1, e.size * 0.6, e.size * 0.6, 2, 0, 0, Math.PI * 2);
+            X.fill();
+            X.scale(0.78, 1);
+            X.fillStyle = e.color;
+            X.beginPath();
+            X.ellipse(0, -e.size * 0.1, e.size * 0.8, e.size, 0, 0, Math.PI * 2);
+            X.fill();
+            X.strokeStyle = e.band;
+            X.lineWidth = 1.5;
+            X.beginPath();
+            X.moveTo(-e.size * 0.5, 0);
+            X.lineTo(e.size * 0.5, 0);
+            X.stroke();
+            X.fillStyle = e.band;
+            for (let d = -1; d <= 1; d++) {
+              X.beginPath();
+              X.arc(d * e.size * 0.3, 0, 1.5, 0, Math.PI * 2);
+              X.fill();
+            }
+            X.fillStyle = "rgba(255,255,255,.35)";
+            X.beginPath();
+            X.ellipse(
+              -e.size * 0.15,
+              -e.size * 0.4,
+              e.size * 0.25,
+              e.size * 0.2,
+              -0.3,
+              0,
+              Math.PI * 2,
+            );
+            X.fill();
+            X.restore();
+          });
+        }
+
+        function drawBasket() {
+          const bx = W / 2,
+            by = H - 10;
+          X.save();
+          X.translate(bx, by);
+          X.fillStyle = "rgba(0,0,0,.08)";
+          X.beginPath();
+          X.ellipse(-4, 3, 36, 6, 0, 0, Math.PI * 2);
+          X.fill();
+          const bg = X.createLinearGradient(-30, -38, 30, 0);
+          bg.addColorStop(0, "#c9a96e");
+          bg.addColorStop(0.5, "#a1887f");
+          bg.addColorStop(1, "#8d6e63");
+          X.fillStyle = bg;
+          X.beginPath();
+          X.moveTo(-28, 0);
+          X.bezierCurveTo(-32, -15, -30, -32, -22, -38);
+          X.lineTo(22, -38);
+          X.bezierCurveTo(30, -32, 32, -15, 28, 0);
+          X.closePath();
+          X.fill();
+          X.strokeStyle = "rgba(62,39,35,.18)";
+          X.lineWidth = 1;
+          for (let i = 1; i < 5; i++) {
+            X.beginPath();
+            X.moveTo(-26 - i * 0.4, -i * 7.5);
+            X.lineTo(26 + i * 0.4, -i * 7.5);
+            X.stroke();
+          }
+          for (let i = -2; i <= 2; i++) {
+            X.beginPath();
+            X.moveTo(i * 11, 0);
+            X.lineTo(i * 9, -38);
+            X.stroke();
+          }
+          const rg = X.createLinearGradient(0, -42, 0, -35);
+          rg.addColorStop(0, "#a1887f");
+          rg.addColorStop(1, "#795548");
+          X.fillStyle = rg;
+          X.beginPath();
+          X.ellipse(0, -38, 25, 5.5, 0, 0, Math.PI * 2);
+          X.fill();
+          X.strokeStyle = "#795548";
+          X.lineWidth = 3.5;
+          X.lineCap = "round";
+          X.beginPath();
+          X.moveTo(-16, -40);
+          X.quadraticCurveTo(0, -60, 16, -40);
+          X.stroke();
+          X.strokeStyle = "#8d6e63";
+          X.lineWidth = 2;
+          X.beginPath();
+          X.moveTo(-15, -40);
+          X.quadraticCurveTo(0, -58, 15, -40);
+          X.stroke();
+          [
+            { dx: -8, dy: -41, c: "#ffcdd2", b: "#e57373" },
+            { dx: 6, dy: -43, c: "#c5cae9", b: "#7986cb" },
+            { dx: -1, dy: -46, c: "#fff9c4", b: "#fff176" },
+          ].forEach((e) => {
+            X.save();
+            X.translate(e.dx, e.dy);
+            X.scale(0.72, 1);
+            X.fillStyle = e.c;
+            X.beginPath();
+            X.ellipse(0, 0, 6, 8, 0, 0, Math.PI * 2);
+            X.fill();
+            X.strokeStyle = e.b;
+            X.lineWidth = 1;
+            X.beginPath();
+            X.moveTo(-4, 0);
+            X.lineTo(4, 0);
+            X.stroke();
+            X.fillStyle = "rgba(255,255,255,.3)";
+            X.beginPath();
+            X.arc(-2, -3, 2, 0, Math.PI * 2);
+            X.fill();
+            X.restore();
+          });
+          X.restore();
+        }
+
+        // ==================== WOODEN SIGN HUD ====================
+        function drawWoodenSign(t) {
+          if (!running) return;
+          // Score sign (left)
+          const signX = 52,
+            signY = 14;
+          X.save();
+          X.translate(signX, signY);
+          X.fillStyle = "#5d4037";
+          X.fillRect(-4, 0, 8, 80);
+          X.fillStyle = "rgba(40,26,18,.15)";
+          X.fillRect(-2, 5, 1, 70);
+          X.fillRect(1, 8, 1, 65);
+          const bw = 92,
+            bh = 58,
+            boardY = 6;
+          const bg = X.createLinearGradient(0, boardY, 0, boardY + bh);
+          bg.addColorStop(0, "#c9a96e");
+          bg.addColorStop(0.3, "#b8944e");
+          bg.addColorStop(0.7, "#a07840");
+          bg.addColorStop(1, "#8d6830");
+          X.fillStyle = bg;
+          X.beginPath();
+          X.roundRect(-bw / 2, boardY, bw, bh, 3);
+          X.fill();
+          X.strokeStyle = "rgba(80,50,20,.1)";
+          X.lineWidth = 1;
+          for (let i = 0; i < 5; i++) {
+            const gy2 = boardY + 8 + i * 10;
+            X.beginPath();
+            X.moveTo(-bw / 2 + 4, gy2);
+            X.lineTo(bw / 2 - 4, gy2);
+            X.stroke();
+          }
+          X.fillStyle = "#78909c";
+          [
+            [-bw / 2 + 6, boardY + 6],
+            [bw / 2 - 6, boardY + 6],
+            [-bw / 2 + 6, boardY + bh - 6],
+            [bw / 2 - 6, boardY + bh - 6],
+          ].forEach((n) => {
+            X.beginPath();
+            X.arc(n[0], n[1], 2.5, 0, Math.PI * 2);
+            X.fill();
+          });
+          X.textAlign = "center";
+          X.textBaseline = "middle";
+          const cy = boardY + bh / 2;
+          X.fillStyle = "rgba(60,30,0,.7)";
+          X.font = "bold 11px Fredoka,sans-serif";
+          X.fillText("SCORE", 0, cy - 14);
+          X.fillStyle = "#3e2723";
+          X.font = "bold 26px Gaegu,cursive";
+          X.fillText(score, 0, cy + 6);
+          X.restore();
+
+          // Eggs sign (right) — shows remaining eggs
+          const tx = W - 52,
+            ty = 14;
+          X.save();
+          X.translate(tx, ty);
+          X.fillStyle = "#5d4037";
+          X.fillRect(-4, 0, 8, 70);
+          X.fillStyle = "rgba(40,26,18,.15)";
+          X.fillRect(-2, 5, 1, 60);
+          const tw = 78,
+            th = 48,
+            tbY = 6;
+          const tg = X.createLinearGradient(0, tbY, 0, tbY + th);
+          tg.addColorStop(0, "#c9a96e");
+          tg.addColorStop(0.5, "#b08840");
+          tg.addColorStop(1, "#8d6830");
+          X.fillStyle = tg;
+          X.beginPath();
+          X.roundRect(-tw / 2, tbY, tw, th, 3);
+          X.fill();
+          X.strokeStyle = "rgba(80,50,20,.1)";
+          X.lineWidth = 1;
+          for (let i = 0; i < 4; i++) {
+            const gy2 = tbY + 8 + i * 10;
+            X.beginPath();
+            X.moveTo(-tw / 2 + 4, gy2);
+            X.lineTo(tw / 2 - 4, gy2);
+            X.stroke();
+          }
+          X.fillStyle = "#78909c";
+          [
+            [-tw / 2 + 5, tbY + 5],
+            [tw / 2 - 5, tbY + 5],
+            [-tw / 2 + 5, tbY + th - 5],
+            [tw / 2 - 5, tbY + th - 5],
+          ].forEach((n) => {
+            X.beginPath();
+            X.arc(n[0], n[1], 2, 0, Math.PI * 2);
+            X.fill();
+          });
+          const tcy = tbY + th / 2;
+          X.textAlign = "center";
+          X.textBaseline = "middle";
+          const eggUrgent = eggsLeft <= 3;
+          X.fillStyle = eggUrgent ? "rgba(180,30,30,.8)" : "rgba(60,30,0,.7)";
+          X.font = "bold 10px Fredoka,sans-serif";
+          X.fillText("EGGS", 0, tcy - 11);
+          X.fillStyle = eggUrgent ? "#b71c1c" : "#3e2723";
+          X.font = "bold 22px Gaegu,cursive";
+          X.fillText(eggsLeft, 0, tcy + 5);
+          if (eggUrgent && eggsLeft > 0) {
+            const pulse = Math.sin(t * 0.008) * 0.15 + 0.85;
+            X.globalAlpha = 1 - pulse;
+            X.strokeStyle = "#e53935";
+            X.lineWidth = 2;
+            X.beginPath();
+            X.roundRect(-tw / 2 - 2, tbY - 2, tw + 4, th + 4, 5);
+            X.stroke();
+            X.globalAlpha = 1;
+          }
+          X.restore();
+
+          // Combo
+          if (combo > 1) {
+            const cx = W / 2,
+              cy2 = 40;
+            const pulse = 1 + Math.sin(t * 0.008) * 0.06;
+            X.save();
+            X.translate(cx, cy2);
+            X.scale(pulse, pulse);
+            X.textAlign = "center";
+            X.textBaseline = "middle";
+            X.fillStyle = "#ff8f00";
+            X.font = "bold 28px Gaegu,cursive";
+            X.shadowColor = "rgba(0,0,0,.2)";
+            X.shadowBlur = 4;
+            X.fillText("x" + combo + " Combo!", 0, 0);
+            X.shadowBlur = 0;
+            X.restore();
+          }
+
+          // Elapsed time (subtle, bottom center)
+          const mins = Math.floor(elapsed / 60);
+          const secs = Math.floor(elapsed % 60);
+          X.textAlign = "center";
+          X.textBaseline = "middle";
+          X.fillStyle = "rgba(255,255,255,.35)";
+          X.font = "bold 12px Fredoka,sans-serif";
+          X.shadowColor = "rgba(0,0,0,.15)";
+          X.shadowBlur = 2;
+          X.fillText(
+            (mins > 0 ? mins + ":" : "") + String(secs).padStart(mins > 0 ? 2 : 1, "0"),
+            W / 2,
+            22,
+          );
+          X.shadowBlur = 0;
+        }
+
+        // ==================== COVERS ====================
+        function drawCover(c) {
+          const gy = c.y,
+            cx = c.x,
+            cw = c.w,
+            ch = c.h;
+          // Grass mound at base — bridges cover to wavy ground
+          X.fillStyle = "#4caf50";
+          X.beginPath();
+          X.ellipse(cx, gy + 4, cw * 0.6, 12, 0, 0, Math.PI * 2);
+          X.fill();
+          if (c.type === "bush") {
+            X.fillStyle = "rgba(0,0,0,.1)";
+            X.beginPath();
+            X.ellipse(cx + 8, gy + 5, cw * 0.48, 7, 0.05, 0, Math.PI * 2);
+            X.fill();
+            const bcy = gy - ch * 0.45;
+            const b1 = X.createRadialGradient(cx + 5, bcy + 5, cw * 0.08, cx, bcy, cw * 0.52);
+            b1.addColorStop(0, "#388e3c");
+            b1.addColorStop(1, "#1b5e20");
+            X.fillStyle = b1;
+            X.beginPath();
+            X.ellipse(cx, bcy, cw * 0.5, ch * 0.52, 0, 0, Math.PI * 2);
+            X.fill();
+            const b2 = X.createRadialGradient(
+              cx - cw * 0.22,
+              bcy + 3,
+              3,
+              cx - cw * 0.2,
+              bcy,
+              cw * 0.28,
+            );
+            b2.addColorStop(0, "#4caf50");
+            b2.addColorStop(1, "#2e7d32");
+            X.fillStyle = b2;
+            X.beginPath();
+            X.ellipse(cx - cw * 0.22, bcy + ch * 0.06, cw * 0.32, ch * 0.42, 0, 0, Math.PI * 2);
+            X.fill();
+            X.fillStyle = "#43a047";
+            X.beginPath();
+            X.ellipse(cx + cw * 0.2, bcy + ch * 0.04, cw * 0.3, ch * 0.4, 0, 0, Math.PI * 2);
+            X.fill();
+            const b3 = X.createRadialGradient(
+              cx - cw * 0.08,
+              bcy - ch * 0.15,
+              2,
+              cx,
+              bcy - ch * 0.1,
+              cw * 0.22,
+            );
+            b3.addColorStop(0, "#66bb6a");
+            b3.addColorStop(1, "#43a047");
+            X.fillStyle = b3;
+            X.beginPath();
+            X.ellipse(cx - cw * 0.05, bcy - ch * 0.12, cw * 0.24, ch * 0.28, 0, 0, Math.PI * 2);
+            X.fill();
+            X.fillStyle = "rgba(165,214,167,.15)";
+            X.beginPath();
+            X.ellipse(cx - cw * 0.15, bcy - ch * 0.2, cw * 0.1, ch * 0.1, -0.2, 0, Math.PI * 2);
+            X.fill();
+            ["#f48fb1", "#fff176", "#ce93d8"].forEach((fc, fi) => {
+              const fx = cx + (fi - 1) * cw * 0.28;
+              const fy = bcy - (fi % 2 ? ch * 0.15 : ch * 0.05);
+              X.fillStyle = fc;
+              X.beginPath();
+              X.arc(fx, fy, 3.5, 0, Math.PI * 2);
+              X.fill();
+              X.fillStyle = "#ffd54f";
+              X.beginPath();
+              X.arc(fx, fy, 1.8, 0, Math.PI * 2);
+              X.fill();
+            });
+            const gcg = X.createLinearGradient(cx - cw * 0.55, gy - 4, cx - cw * 0.55, gy + 8);
+            gcg.addColorStop(0, "#4caf50");
+            gcg.addColorStop(1, "#43a047");
+            X.fillStyle = gcg;
+            X.fillRect(cx - cw * 0.55, gy - 2, cw * 1.1, 10);
+          } else if (c.type === "tree") {
+            X.fillStyle = "rgba(0,0,0,.1)";
+            X.beginPath();
+            X.ellipse(cx + 10, gy + 5, cw * 0.5, 6, 0.05, 0, Math.PI * 2);
+            X.fill();
+            const tw = cw * 0.16;
+            const tg = X.createLinearGradient(cx - tw, 0, cx + tw, 0);
+            tg.addColorStop(0, "#4e342e");
+            tg.addColorStop(0.3, "#6d4c41");
+            tg.addColorStop(0.7, "#5d4037");
+            tg.addColorStop(1, "#3e2723");
+            X.fillStyle = tg;
+            X.beginPath();
+            X.moveTo(cx - tw * 1.2, gy);
+            X.bezierCurveTo(
+              cx - tw * 1.1,
+              gy - ch * 0.15,
+              cx - tw * 0.8,
+              gy - ch * 0.35,
+              cx - tw * 0.6,
+              gy - ch * 0.48,
+            );
+            X.lineTo(cx + tw * 0.6, gy - ch * 0.48);
+            X.bezierCurveTo(
+              cx + tw * 0.8,
+              gy - ch * 0.35,
+              cx + tw * 1.1,
+              gy - ch * 0.15,
+              cx + tw * 1.2,
+              gy,
+            );
+            X.fill();
+            X.strokeStyle = "#5d4037";
+            X.lineWidth = 3;
+            X.lineCap = "round";
+            X.beginPath();
+            X.moveTo(cx - tw * 1.1, gy);
+            X.quadraticCurveTo(cx - tw * 1.6, gy + 2, cx - tw * 2, gy + 4);
+            X.stroke();
+            X.beginPath();
+            X.moveTo(cx + tw * 1.1, gy);
+            X.quadraticCurveTo(cx + tw * 1.6, gy + 2, cx + tw * 2, gy + 4);
+            X.stroke();
+            const fcy = gy - ch * 0.7;
+            [
+              { dx: 0, dy: 0, rx: cw * 0.52, ry: ch * 0.34, h: 128, l: 28 },
+              { dx: -cw * 0.22, dy: ch * 0.08, rx: cw * 0.36, ry: ch * 0.25, h: 124, l: 30 },
+              { dx: cw * 0.2, dy: ch * 0.05, rx: cw * 0.34, ry: ch * 0.23, h: 132, l: 31 },
+              { dx: -cw * 0.06, dy: -ch * 0.15, rx: cw * 0.3, ry: ch * 0.22, h: 126, l: 34 },
+              { dx: cw * 0.08, dy: -ch * 0.13, rx: cw * 0.26, ry: ch * 0.19, h: 130, l: 36 },
+              { dx: 0, dy: -ch * 0.24, rx: cw * 0.2, ry: ch * 0.15, h: 128, l: 39 },
+            ].forEach((l) => {
+              const lx = cx + l.dx,
+                ly = fcy + l.dy;
+              const fg = X.createRadialGradient(
+                lx - l.rx * 0.2,
+                ly - l.ry * 0.25,
+                2,
+                lx,
+                ly,
+                Math.max(l.rx, l.ry),
+              );
+              fg.addColorStop(0, `hsl(${l.h},50%,${l.l + 8}%)`);
+              fg.addColorStop(0.7, `hsl(${l.h},48%,${l.l}%)`);
+              fg.addColorStop(1, `hsl(${l.h},44%,${l.l - 6}%)`);
+              X.fillStyle = fg;
+              X.beginPath();
+              X.ellipse(lx, ly, l.rx, l.ry, 0, 0, Math.PI * 2);
+              X.fill();
+            });
+          } else if (c.type === "fence") {
+            X.fillStyle = "rgba(0,0,0,.08)";
+            X.beginPath();
+            X.ellipse(cx + 6, gy + 5, cw * 0.5, 5, 0.05, 0, Math.PI * 2);
+            X.fill();
+            const postCount = Math.round(cw / 22);
+            const postSpacing = cw / (postCount - 1);
+            const startX = cx - cw / 2;
+            for (let i = 0; i < postCount; i++) {
+              const px = startX + i * postSpacing;
+              const pg = X.createLinearGradient(px - 4, 0, px + 4, 0);
+              pg.addColorStop(0, "#5d4037");
+              pg.addColorStop(0.4, "#8d6e63");
+              pg.addColorStop(1, "#4e342e");
+              X.fillStyle = pg;
+              X.beginPath();
+              X.moveTo(px - 4.5, gy - ch + 10);
+              X.lineTo(px, gy - ch);
+              X.lineTo(px + 4.5, gy - ch + 10);
+              X.lineTo(px + 4.5, gy + 10);
+              X.lineTo(px - 4.5, gy + 10);
+              X.fill();
+            }
+            const rl = X.createLinearGradient(0, 0, 0, 8);
+            rl.addColorStop(0, "#a1887f");
+            rl.addColorStop(1, "#6d4c41");
+            X.fillStyle = rl;
+            X.fillRect(cx - cw / 2 - 2, gy - ch * 0.75, cw + 4, 7);
+            X.fillRect(cx - cw / 2 - 2, gy - ch * 0.38, cw + 4, 7);
+          } else if (c.type === "house") {
+            // Shadow
+            X.fillStyle = "rgba(0,0,0,.1)";
+            X.beginPath();
+            X.ellipse(cx + 6, gy + 5, cw * 0.45, 7, 0.05, 0, Math.PI * 2);
+            X.fill();
+            // Walls
+            const wallL = cx - cw * 0.42, wallR = cx + cw * 0.42;
+            const wallTop = gy - ch * 0.55, wallBot = gy + 8;
+            const wallG = X.createLinearGradient(wallL, 0, wallR, 0);
+            wallG.addColorStop(0, "#d7ccc8");
+            wallG.addColorStop(0.3, "#efebe9");
+            wallG.addColorStop(0.7, "#efebe9");
+            wallG.addColorStop(1, "#bcaaa4");
+            X.fillStyle = wallG;
+            X.fillRect(wallL, wallTop, wallR - wallL, wallBot - wallTop);
+            // Roof
+            const roofPeak = gy - ch + 2;
+            const roofG = X.createLinearGradient(0, roofPeak, 0, wallTop);
+            roofG.addColorStop(0, "#c62828");
+            roofG.addColorStop(0.4, "#e53935");
+            roofG.addColorStop(1, "#b71c1c");
+            X.fillStyle = roofG;
+            X.beginPath();
+            X.moveTo(wallL - cw * 0.08, wallTop);
+            X.lineTo(cx, roofPeak);
+            X.lineTo(wallR + cw * 0.08, wallTop);
+            X.closePath();
+            X.fill();
+            // Roof outline
+            X.strokeStyle = "#8e2020";
+            X.lineWidth = 1.5;
+            X.beginPath();
+            X.moveTo(wallL - cw * 0.08, wallTop);
+            X.lineTo(cx, roofPeak);
+            X.lineTo(wallR + cw * 0.08, wallTop);
+            X.stroke();
+            // Door
+            const doorW = cw * 0.18, doorH = ch * 0.28;
+            const doorX = cx - doorW / 2, doorY = wallBot - doorH;
+            const doorG = X.createLinearGradient(doorX, 0, doorX + doorW, 0);
+            doorG.addColorStop(0, "#5d4037");
+            doorG.addColorStop(0.5, "#795548");
+            doorG.addColorStop(1, "#4e342e");
+            X.fillStyle = doorG;
+            X.beginPath();
+            X.roundRect(doorX, doorY, doorW, doorH, [4, 4, 0, 0]);
+            X.fill();
+            // Doorknob
+            X.fillStyle = "#ffd54f";
+            X.beginPath();
+            X.arc(doorX + doorW * 0.75, doorY + doorH * 0.55, 2, 0, Math.PI * 2);
+            X.fill();
+            // Window (the peek hole!)
+            const ww = c.winW, wh = c.winH;
+            const wx = c.winX - ww / 2, wy = c.winY - wh / 2;
+            X.fillStyle = "#1a237e";
+            X.fillRect(wx, wy, ww, wh);
+            // Window shine
+            X.fillStyle = "rgba(144,202,249,.3)";
+            X.fillRect(wx + 2, wy + 2, ww * 0.4, wh * 0.4);
+            // Window frame
+            X.strokeStyle = "#5d4037";
+            X.lineWidth = 2;
+            X.strokeRect(wx, wy, ww, wh);
+            X.beginPath();
+            X.moveTo(wx + ww / 2, wy);
+            X.lineTo(wx + ww / 2, wy + wh);
+            X.stroke();
+            X.beginPath();
+            X.moveTo(wx, wy + wh / 2);
+            X.lineTo(wx + ww, wy + wh / 2);
+            X.stroke();
+            // Wall texture lines
+            X.strokeStyle = "rgba(0,0,0,.04)";
+            X.lineWidth = 1;
+            for (let i = 1; i < 6; i++) {
+              const ly = wallTop + i * (wallBot - wallTop) / 6;
+              X.beginPath();
+              X.moveTo(wallL + 3, ly);
+              X.lineTo(wallR - 3, ly);
+              X.stroke();
+            }
+          } else {
+            X.fillStyle = "rgba(0,0,0,.1)";
+            X.beginPath();
+            X.ellipse(cx + 6, gy + 5, cw * 0.4, 6, 0.05, 0, Math.PI * 2);
+            X.fill();
+            const rg = X.createRadialGradient(
+              cx - cw * 0.12,
+              gy - ch * 0.5,
+              4,
+              cx,
+              gy - ch * 0.3,
+              cw * 0.5,
+            );
+            rg.addColorStop(0, "#90a4ae");
+            rg.addColorStop(0.5, "#78909c");
+            rg.addColorStop(1, "#546e7a");
+            X.fillStyle = rg;
+            X.beginPath();
+            X.moveTo(cx - cw * 0.38, gy + 10);
+            X.bezierCurveTo(
+              cx - cw * 0.44,
+              gy - ch * 0.3,
+              cx - cw * 0.3,
+              gy - ch * 0.7,
+              cx - cw * 0.1,
+              gy - ch * 0.9,
+            );
+            X.bezierCurveTo(
+              cx + cw * 0.05,
+              gy - ch * 1,
+              cx + cw * 0.25,
+              gy - ch * 0.85,
+              cx + cw * 0.35,
+              gy - ch * 0.55,
+            );
+            X.bezierCurveTo(
+              cx + cw * 0.42,
+              gy - ch * 0.3,
+              cx + cw * 0.4,
+              gy - ch * 0.1,
+              cx + cw * 0.35,
+              gy + 10,
+            );
+            X.closePath();
+            X.fill();
+            X.fillStyle = "rgba(255,255,255,.1)";
+            X.beginPath();
+            X.moveTo(cx - cw * 0.3, gy - ch * 0.2);
+            X.bezierCurveTo(
+              cx - cw * 0.35,
+              gy - ch * 0.5,
+              cx - cw * 0.2,
+              gy - ch * 0.8,
+              cx - cw * 0.05,
+              gy - ch * 0.88,
+            );
+            X.bezierCurveTo(
+              cx - cw * 0.15,
+              gy - ch * 0.6,
+              cx - cw * 0.25,
+              gy - ch * 0.3,
+              cx - cw * 0.3,
+              gy - ch * 0.2,
+            );
+            X.fill();
+            X.fillStyle = "rgba(129,199,132,.25)";
+            X.beginPath();
+            X.ellipse(cx - cw * 0.08, gy - ch * 0.05, cw * 0.15, 5, 0.1, 0, Math.PI * 2);
+            X.fill();
+          }
+        }
+
+        // ==================== BUNNY (with clipping) ====================
+        function drawBunnyHead(flash) {
+          // Just head + ears — for head peeking
+          X.fillStyle = flash ? "#ffcdd2" : "#fff";
+          X.beginPath();
+          X.arc(0, 0, 18, 0, Math.PI * 2);
+          X.fill();
+          // Ears
+          X.fillStyle = flash ? "#ffcdd2" : "#fff";
+          X.beginPath();
+          X.ellipse(-8, -28, 7, 22, -0.2, 0, Math.PI * 2);
+          X.fill();
+          X.beginPath();
+          X.ellipse(10, -26, 7, 20, 0.15, 0, Math.PI * 2);
+          X.fill();
+          X.fillStyle = "#f8bbd0";
+          X.beginPath();
+          X.ellipse(-8, -28, 3, 14, -0.2, 0, Math.PI * 2);
+          X.fill();
+          X.beginPath();
+          X.ellipse(10, -26, 3, 12, 0.15, 0, Math.PI * 2);
+          X.fill();
+          // Eyes
+          X.fillStyle = "#333";
+          X.beginPath();
+          X.arc(-6, -2, 3, 0, Math.PI * 2);
+          X.fill();
+          X.beginPath();
+          X.arc(8, -2, 3, 0, Math.PI * 2);
+          X.fill();
+          X.fillStyle = "#fff";
+          X.beginPath();
+          X.arc(-5, -3, 1.2, 0, Math.PI * 2);
+          X.fill();
+          X.beginPath();
+          X.arc(9, -3, 1.2, 0, Math.PI * 2);
+          X.fill();
+          // Nose
+          X.fillStyle = "#f48fb1";
+          X.beginPath();
+          X.arc(1, 4, 2.5, 0, Math.PI * 2);
+          X.fill();
+        }
+
+        function drawBunnyFull(flash, isTaunting, tauntTimer) {
+          // Full body
+          X.fillStyle = flash ? "#ffcdd2" : "#fafafa";
+          X.beginPath();
+          X.ellipse(0, -20, 22, 28, 0, 0, Math.PI * 2);
+          X.fill();
+          X.fillStyle = "rgba(0,0,0,.04)";
+          X.beginPath();
+          X.ellipse(-8, -18, 14, 24, 0, 0, Math.PI * 2);
+          X.fill();
+          X.fillStyle = flash ? "#ffcdd2" : "#fff";
+          X.beginPath();
+          X.arc(-2, -52, 18, 0, Math.PI * 2);
+          X.fill();
+          X.fillStyle = flash ? "#ffcdd2" : "#fff";
+          X.beginPath();
+          X.ellipse(-10, -80, 7, 22, -0.2, 0, Math.PI * 2);
+          X.fill();
+          X.beginPath();
+          X.ellipse(8, -78, 7, 20, 0.15, 0, Math.PI * 2);
+          X.fill();
+          X.fillStyle = "#f8bbd0";
+          X.beginPath();
+          X.ellipse(-10, -80, 3, 14, -0.2, 0, Math.PI * 2);
+          X.fill();
+          X.beginPath();
+          X.ellipse(8, -78, 3, 12, 0.15, 0, Math.PI * 2);
+          X.fill();
+          X.fillStyle = "#333";
+          X.beginPath();
+          X.arc(-8, -54, 3, 0, Math.PI * 2);
+          X.fill();
+          X.beginPath();
+          X.arc(6, -54, 3, 0, Math.PI * 2);
+          X.fill();
+          X.fillStyle = "#fff";
+          X.beginPath();
+          X.arc(-7, -55, 1.2, 0, Math.PI * 2);
+          X.fill();
+          X.beginPath();
+          X.arc(7, -55, 1.2, 0, Math.PI * 2);
+          X.fill();
+          X.fillStyle = "#f48fb1";
+          X.beginPath();
+          X.arc(-1, -48, 2.5, 0, Math.PI * 2);
+          X.fill();
+          X.strokeStyle = "rgba(0,0,0,.2)";
+          X.lineWidth = 1;
+          [
+            [-12, -48, -28, -46],
+            [-12, -47, -26, -50],
+            [10, -48, 26, -46],
+            [10, -47, 24, -50],
+          ].forEach((w) => {
+            X.beginPath();
+            X.moveTo(w[0], w[1]);
+            X.lineTo(w[2], w[3]);
+            X.stroke();
+          });
+          if (isTaunting) {
+            X.strokeStyle = "#333";
+            X.lineWidth = 1.5;
+            X.beginPath();
+            X.arc(-1, -44, 5, 0, Math.PI);
+            X.stroke();
+            X.fillStyle = "#f48fb1";
+            X.beginPath();
+            X.ellipse(-1, -42, 3, 2, 0, 0, Math.PI);
+            X.fill();
+          }
+          X.fillStyle = flash ? "#ffcdd2" : "#fafafa";
+          X.beginPath();
+          X.ellipse(-12, 6, 10, 5, 0, 0, Math.PI * 2);
+          X.fill();
+          X.beginPath();
+          X.ellipse(10, 6, 10, 5, 0, 0, Math.PI * 2);
+          X.fill();
+          X.fillStyle = "#fff";
+          X.beginPath();
+          X.arc(20, -12, 8, 0, Math.PI * 2);
+          X.fill();
+          if (isTaunting) {
+            X.fillStyle = flash ? "#ffcdd2" : "#fafafa";
+            X.save();
+            X.translate(-20, -40);
+            X.rotate(Math.sin(tauntTimer * 12) * 0.4);
+            X.beginPath();
+            X.ellipse(0, -8, 5, 8, 0, 0, Math.PI * 2);
+            X.fill();
+            X.restore();
+          }
+        }
+
+        function drawBunny() {
+          if (!bunny.visible && bunny.hideProgress >= 1) return;
+          const bx = bunny.x,
+            by = bunny.y;
+          const d = bunny.dir;
+          const flash = bunny.hitFlash > 0;
+          const isHidingBehindCover =
+            (bunny.state === "hiding" ||
+              bunny.state === "peeking" ||
+              bunny.state === "head_peeking" ||
+              bunny.state === "fake_peek" ||
+              bunny.state === "side_swap" ||
+              bunny.state === "taunt_peek") &&
+            bunny.coverIdx >= 0 &&
+            bunny.coverIdx < covers.length;
+
+          if (bunny.state === "head_peeking" || bunny.state === "fake_peek") {
+            // Only draw head above cover
+            X.save();
+            X.translate(bx, by);
+            X.scale(d, 1);
+            drawBunnyHead(flash);
+            X.restore();
+            // Shadow at ground
+            X.fillStyle = "rgba(0,0,0,.06)";
+            X.beginPath();
+            X.ellipse(bx, groundY() + 4, 14, 4, 0, 0, Math.PI * 2);
+            X.fill();
+            return;
+          }
+
+          if (isHidingBehindCover && bunny.state !== "peeking" && bunny.state !== "side_swap" && bunny.state !== "taunt_peek") {
+            // Bunny is fully behind cover — don't draw
+            return;
+          }
+
+          // For side peeking, clip the bunny so body parts behind the cover are hidden
+          let needsClip = false;
+          if ((bunny.state === "peeking" || bunny.state === "side_swap" || bunny.state === "taunt_peek") && bunny.coverIdx >= 0 && bunny.coverIdx < covers.length) {
+            const cv = covers[bunny.coverIdx];
+            X.save();
+            // Clip to area OUTSIDE the cover bounds (let bunny show only where cover isn't)
+            X.beginPath();
+            X.rect(0, 0, W, H);
+            // Punch out the cover region — must extend to peek positions
+            const clipPad = 15; // small padding so bunny body is cleanly cut
+            const clipL = cv.x - cv.w / 2 - clipPad;
+            const clipR = cv.x + cv.w / 2 + clipPad;
+            const clipT = cv.y - cv.h - 10;
+            const clipB = cv.y + 10;
+            // Use evenodd: full canvas minus cover rect = everything outside cover
+            X.rect(clipL, clipT, clipR - clipL, clipB - clipT);
+            X.clip("evenodd");
+            needsClip = true;
+          }
+
+          X.save();
+          X.translate(bx, by);
+          X.scale(d, 1);
+          // Shadow
+          X.fillStyle = "rgba(0,0,0,.1)";
+          const sy = groundY() - by;
+          X.beginPath();
+          X.ellipse(0, sy + 4, 20, 5, 0, 0, Math.PI * 2);
+          X.fill();
+          drawBunnyFull(flash, bunny.state === "taunt" || bunny.state === "taunt_peek", bunny.stateTimer);
+          X.restore();
+          if (needsClip) X.restore();
+        }
+
+        function drawProjectile(p) {
+          X.save();
+          X.translate(p.x, p.y);
+          X.rotate(p.rot);
+          X.scale(0.8, 1);
+          X.fillStyle = p.color;
+          X.beginPath();
+          X.arc(0, 0, 12, 0, Math.PI * 2);
+          X.fill();
+          X.strokeStyle = p.accent;
+          X.lineWidth = 2;
+          X.beginPath();
+          X.moveTo(-8, 0);
+          X.quadraticCurveTo(0, -5, 8, 0);
+          X.stroke();
+          X.fillStyle = "rgba(255,255,255,.35)";
+          X.beginPath();
+          X.arc(-3, -4, 4, 0, Math.PI * 2);
+          X.fill();
+          X.restore();
+          X.globalAlpha = 0.25;
+          X.fillStyle = p.color;
+          X.beginPath();
+          X.arc(p.x - p.vx * 0.03, p.y - p.vy * 0.03, 8, 0, Math.PI * 2);
+          X.fill();
+          X.globalAlpha = 1;
+        }
+        function drawSplat(s) {
+          X.globalAlpha = s.alpha;
+          X.fillStyle = s.color;
+          X.beginPath();
+          X.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+          X.fill();
+          for (let i = 0; i < s.drops.length; i++) {
+            const d = s.drops[i];
+            X.beginPath();
+            X.arc(d.x, d.y, d.r, 0, Math.PI * 2);
+            X.fill();
+          }
+          X.globalAlpha = 1;
+        }
+        function drawParticle(p) {
+          X.globalAlpha = clamp(p.life / p.ml, 0, 1);
+          X.fillStyle = p.color;
+          if (p.shape === "rect") {
+            X.save();
+            X.translate(p.x, p.y);
+            X.rotate(p.rot);
+            X.fillRect(-p.sz / 2, -p.sz / 3, p.sz, p.sz * 0.6);
+            X.restore();
+          } else {
+            X.beginPath();
+            X.arc(p.x, p.y, p.sz, 0, Math.PI * 2);
+            X.fill();
+          }
+          X.globalAlpha = 1;
+        }
+        function drawText(t2) {
+          X.globalAlpha = clamp(t2.life / 0.8, 0, 1);
+          X.fillStyle = t2.color;
+          X.font = `bold ${t2.sz}px Fredoka,sans-serif`;
+          X.textAlign = "center";
+          X.shadowColor = "rgba(0,0,0,.3)";
+          X.shadowBlur = 4;
+          X.fillText(t2.text, t2.x, t2.y);
+          X.shadowBlur = 0;
+          X.globalAlpha = 1;
+        }
+        function drawConfetti() {
+          confetti.forEach((c) => {
+            X.globalAlpha = clamp(c.life / c.ml, 0, 1);
+            X.save();
+            X.translate(c.x, c.y);
+            X.rotate(c.rot);
+            X.fillStyle = c.color;
+            X.fillRect(-c.w / 2, -c.h / 2, c.w, c.h);
+            X.restore();
+            X.globalAlpha = 1;
+          });
+        }
+
+        function drawHint(t) {
+          if (!showHint || !running) return;
+          X.globalAlpha = hintAlpha;
+          const bx = W / 2,
+            by = H - 80;
+          X.save();
+          X.translate(bx, by);
+          X.strokeStyle = "rgba(255,255,255,.4)";
+          X.lineWidth = 2;
+          X.setLineDash([6, 6]);
+          X.beginPath();
+          X.moveTo(0, 0);
+          X.quadraticCurveTo(-40, -120, 0, -200);
+          X.stroke();
+          X.setLineDash([]);
+          X.fillStyle = "rgba(255,255,255,.4)";
+          X.beginPath();
+          X.moveTo(-5, -195);
+          X.lineTo(0, -210);
+          X.lineTo(5, -195);
+          X.fill();
+          X.restore();
+          X.textAlign = "center";
+          X.textBaseline = "middle";
+          X.fillStyle = "rgba(255,255,255,.5)";
+          X.font = "bold 14px Fredoka,sans-serif";
+          X.shadowColor = "rgba(0,0,0,.2)";
+          X.shadowBlur = 3;
+          X.fillText("Click to throw!", bx, by - 220);
+          X.shadowBlur = 0;
+          X.globalAlpha = 1;
+        }
+
+        // ==================== GAME LOGIC ====================
+        const eggColors = [
+          { c: "#ffcdd2", a: "#e57373" },
+          { c: "#f8bbd0", a: "#f06292" },
+          { c: "#e1bee7", a: "#ba68c8" },
+          { c: "#c5cae9", a: "#7986cb" },
+          { c: "#b3e5fc", a: "#4fc3f7" },
+          { c: "#fff9c4", a: "#fff176" },
+          { c: "#ffe0b2", a: "#ffb74d" },
+          { c: "#c8e6c9", a: "#81c784" },
+        ];
+
+        function throwEgg(tx, ty) {
+          if (eggsLeft <= 0 || !running || paused) return;
+          if (showHint) {
+            showHint = false;
+            hintAlpha = 0;
+          }
+          eggsLeft--;
+          ea();
+          sndThrow();
+          const col = pick(eggColors);
+          const sx = W / 2,
+            sy = H + 20;
+          const dx = tx - sx,
+            dy = ty - sy;
+          const d2 = Math.hypot(dx, dy);
+          const speed = Math.max(800, d2 * 2.5);
+          projectiles.push({
+            x: sx,
+            y: sy,
+            vx: (dx / d2) * speed,
+            vy: (dy / d2) * speed,
+            rot: Math.atan2(dy, dx),
+            color: col.c,
+            accent: col.a,
+            life: 0.8,
+          });
+        }
+
+        function makeSplat(x, y, color) {
+          const drops = [];
+          for (let i = 0; i < randI(4, 7); i++) {
+            const a = rand(0, Math.PI * 2),
+              d2 = rand(10, 30);
+            drops.push({ x: x + Math.cos(a) * d2, y: y + Math.sin(a) * d2, r: rand(3, 6) });
+          }
+          splats.push({ x, y, r: rand(10, 18), color, drops, alpha: 1, life: 10 });
+        }
+        function burstParticles(x, y, colors, n = 14) {
+          for (let i = 0; i < n; i++) {
+            const a = rand(0, Math.PI * 2),
+              sp = rand(80, 250);
+            particles.push({
+              x,
+              y,
+              vx: Math.cos(a) * sp,
+              vy: Math.sin(a) * sp - rand(30, 100),
+              life: rand(0.3, 0.7),
+              ml: 0.7,
+              sz: rand(3, 7),
+              color: pick(colors),
+              grav: 400,
+              rot: rand(0, 6.28),
+              rotSpd: rand(-8, 8),
+              shape: Math.random() < 0.4 ? "rect" : "circle",
+            });
+          }
+        }
+        function addText(x, y, text, color, sz = 18) {
+          texts.push({ x, y, text, color, sz, life: 0.9 });
+        }
+        function spawnConfetti(n = 60) {
+          for (let i = 0; i < n; i++) {
+            confetti.push({
+              x: rand(0, W),
+              y: rand(-200, -50),
+              vx: rand(-40, 40),
+              vy: rand(60, 200),
+              rot: rand(0, 6.28),
+              rotSpd: rand(-6, 6),
+              w: rand(4, 10),
+              h: rand(6, 14),
+              color: pick([
+                "#e57373",
+                "#f06292",
+                "#ba68c8",
+                "#7986cb",
+                "#4fc3f7",
+                "#fff176",
+                "#ffb74d",
+                "#81c784",
+                "#ffd54f",
+                "#ff8a65",
+              ]),
+              life: rand(2, 4),
+              ml: 4,
+              grav: 60 + rand(0, 40),
+            });
+          }
+        }
+
+        function reset() {
+          score = 0;
+          elapsed = 0;
+          eggsLeft = 12;
+          eggsMax = 12;
+          gameOverTimer = 0;
+          combo = 1;
+          hits = 0;
+          misses = 0;
+          maxCombo = 1;
+          projectiles = [];
+          particles = [];
+          splats = [];
+          texts = [];
+          confetti = [];
+          shakeDur = 0;
+          shakeX = 0;
+          shakeY = 0;
+          showHint = true;
+          hintAlpha = 1;
+          bunny = {
+            x: W / 2,
+            y: groundY(),
+            state: "idle",
+            stateTimer: 0,
+            targetX: W / 2,
+            targetY: groundY(),
+            dir: 1,
+            hitFlash: 0,
+            coverIdx: -1,
+            peekDir: 0,
+            visible: true,
+            speed: 180,
+            scale: 1,
+            jumpT: 0,
+            hideProgress: 0,
+          };
+        }
+
+        function update(dt) {
+          elapsed += dt;
+
+          if (showHint) {
+            hintAlpha = Math.min(1, hintAlpha + dt);
+          }
+          if (shakeDur > 0) {
+            shakeDur -= dt;
+            const f = shakeDur / 0.2;
+            shakeX = (Math.random() - 0.5) * 8 * f;
+            shakeY = (Math.random() - 0.5) * 8 * f;
+            if (shakeDur <= 0) {
+              shakeX = 0;
+              shakeY = 0;
+            }
+          }
+
+          bunnyAI(dt);
+
+          for (let i = projectiles.length - 1; i >= 0; i--) {
+            const p = projectiles[i];
+            p.x += p.vx * dt;
+            p.y += p.vy * dt;
+            p.vy += 200 * dt;
+            p.rot = Math.atan2(p.vy, p.vx);
+            p.life -= dt;
+
+            if (bunny.visible && bunny.state !== "hiding" && !(bunny.state === "side_swap" && bunny.sideSwapPhase === 1)) {
+              // Hit detection — hitbox aligned with visual center
+              // Body center is drawn at y-20, head at y-52, full height ~90px
+              let hitCX = bunny.x,
+                hitCY = bunny.y - 35,
+                hitR = 30;
+              if (bunny.state === "head_peeking" || bunny.state === "fake_peek") {
+                // Head drawn at bunny.y (center of arc), ears extend to y-28
+                hitCY = bunny.y - 5;
+                hitR = 22;
+              } else if (bunny.state === "peeking" || bunny.state === "side_swap" || bunny.state === "taunt_peek") {
+                // Body center drawn at y-20
+                hitCY = bunny.y - 20;
+                hitR = 25;
+              }
+              if (dist(p.x, p.y, hitCX, hitCY) < hitR + 12) {
+                sndHit();
+                bunny.hitFlash = 0.3;
+                const basePts =
+                  bunny.state === "fake_peek"
+                    ? 50
+                    : bunny.state === "taunt_peek"
+                      ? 45
+                      : bunny.state === "head_peeking"
+                        ? 40
+                        : bunny.state === "side_swap"
+                          ? 35
+                          : bunny.state === "peeking"
+                            ? 30
+                            : bunny.state === "running" || bunny.state === "jumping"
+                              ? 20
+                              : 15;
+                const gained = basePts * combo;
+                score += gained;
+                hits++;
+                combo = Math.min(10, combo + 1);
+                if (combo > maxCombo) maxCombo = combo;
+                if (combo >= 3 && combo % 2 === 1) sndCombo();
+                burstParticles(p.x, p.y, [p.color, p.accent, "#fff", "#ffd54f"], 18);
+                makeSplat(p.x, p.y, p.color);
+                addText(p.x, p.y - 20, "+" + gained, "#2e7d32", 22);
+                if (combo >= 3) addText(p.x, p.y - 45, "x" + combo + "!", "#ff6b9d", 16);
+                // Earn eggs back on hits — this is how you survive
+                let eggsEarned = 1; // every hit gives back 1 egg
+                if (bunny.state === "head_peeking" || bunny.state === "fake_peek") eggsEarned = 2; // head/fake peek = 2
+                if (combo >= 4) eggsEarned++; // combo bonus
+                eggsEarned = Math.min(eggsEarned, eggsMax - eggsLeft);
+                if (eggsEarned > 0) {
+                  eggsLeft += eggsEarned;
+                  addText(
+                    p.x,
+                    p.y - 65,
+                    "+" + eggsEarned + " egg" + (eggsEarned > 1 ? "s" : ""),
+                    "#1565c0",
+                    13,
+                  );
+                }
+                // Hit reaction — bunny panics with visible evasion
+                const hSpd = difficulty().bunnySpd;
+                const fleeDir = p.x < bunny.x ? 1 : -1;
+                // Try to find a cover far enough away (min 150px) for a visible flee
+                let farCover = -1;
+                if (Math.random() < 0.35 && covers.length > 0) {
+                  let bestD = 0;
+                  for (let ci = 0; ci < covers.length; ci++) {
+                    const dd = Math.abs(covers[ci].x - bunny.x);
+                    if (dd >= 150 && dd > bestD) {
+                      bestD = dd;
+                      farCover = ci;
+                    }
+                  }
+                }
+                if (farCover >= 0) {
+                  // Flee to a distant cover — run is clearly visible
+                  bunny.state = "moving_to_cover";
+                  bunny.coverIdx = farCover;
+                  bunny.targetX = covers[farCover].x;
+                  bunny.targetY = groundY();
+                  bunny.speed = rand(220, 300) * hSpd;
+                  bunny.stateTimer = 3;
+                } else if (Math.random() < 0.5) {
+                  // Panicked jump in opposite direction
+                  bunny.state = "jumping";
+                  bunny.jumpT = 0;
+                  bunny.targetX = clamp(bunny.x + fleeDir * rand(180, 350), 80, W - 80);
+                  bunny.targetY = groundY();
+                  bunny.speed = rand(200, 280) * hSpd;
+                  bunny.stateTimer = 3;
+                } else {
+                  // Sprint away from egg impact
+                  bunny.state = "running";
+                  bunny.targetX = clamp(bunny.x + fleeDir * rand(200, 400), 80, W - 80);
+                  bunny.targetY = groundY();
+                  bunny.speed = rand(240, 320) * hSpd;
+                  bunny.stateTimer = 3;
+                }
+                bunny.visible = true;
+                projectiles.splice(i, 1);
+                continue;
+              }
+            }
+
+            if (p.life <= 0 || p.x < -50 || p.x > W + 50 || p.y < -50 || p.y > H + 50) {
+              if (p.y < groundY()) {
+                misses++;
+                combo = 1;
+                sndMiss();
+                makeSplat(p.x, clamp(p.y, 20, H - 20), p.color);
+                addText(p.x, p.y, "miss", "rgba(255,255,255,.5)", 14);
+              }
+              projectiles.splice(i, 1);
+            }
+          }
+
+          for (let i = particles.length - 1; i >= 0; i--) {
+            const p = particles[i];
+            p.life -= dt;
+            p.vy += p.grav * dt;
+            p.x += p.vx * dt;
+            p.y += p.vy * dt;
+            p.rot += p.rotSpd * dt;
+            if (p.life <= 0) particles.splice(i, 1);
+          }
+          for (let i = splats.length - 1; i >= 0; i--) {
+            splats[i].life -= dt;
+            splats[i].alpha = clamp(splats[i].life / 3, 0, 0.8);
+            if (splats[i].life <= 0) splats.splice(i, 1);
+          }
+          for (let i = texts.length - 1; i >= 0; i--) {
+            texts[i].life -= dt;
+            texts[i].y -= 30 * dt;
+            if (texts[i].life <= 0) texts.splice(i, 1);
+          }
+          for (let i = confetti.length - 1; i >= 0; i--) {
+            const c = confetti[i];
+            c.life -= dt;
+            c.x += c.vx * dt;
+            c.y += c.vy * dt;
+            c.vy += c.grav * dt;
+            c.rot += c.rotSpd * dt;
+            if (c.life <= 0) confetti.splice(i, 1);
+          }
+
+          // Game over: 0 eggs + nothing in flight = done (small grace period so last egg can land)
+          if (eggsLeft <= 0 && projectiles.length === 0) {
+            gameOverTimer += dt;
+            if (gameOverTimer > 0.5) endGame();
+          } else {
+            gameOverTimer = 0;
+          }
+        }
+
+        function render(now) {
+          X.save();
+          X.translate(shakeX, shakeY);
+          drawSky(now);
+          drawBirds(now);
+          drawBgTrees();
+          drawGround(now);
+          drawGrassEggs();
+          drawButterflies(now);
+          drawBasket();
+          splats.forEach(drawSplat);
+
+          // Z-order covers + bunny
+          const sortedCovers = [...covers].sort((a, b) => a.x - b.x);
+          const bunnyDrawn = { done: false };
+          const hidingCover =
+            (bunny.state === "hiding" ||
+              bunny.state === "peeking" ||
+              bunny.state === "head_peeking" ||
+              bunny.state === "fake_peek" ||
+              bunny.state === "side_swap" ||
+              bunny.state === "taunt_peek") &&
+            bunny.coverIdx >= 0
+              ? covers[bunny.coverIdx]
+              : null;
+
+          sortedCovers.forEach((c) => {
+            if (!bunnyDrawn.done && hidingCover === c) {
+              // Draw bunny BEHIND this cover, then cover on top
+              drawBunny();
+              drawCover(c);
+              bunnyDrawn.done = true;
+            } else if (!bunnyDrawn.done && c.x >= bunny.x && !hidingCover) {
+              drawBunny();
+              bunnyDrawn.done = true;
+              drawCover(c);
+            } else {
+              drawCover(c);
+            }
+          });
+          if (!bunnyDrawn.done) drawBunny();
+
+          projectiles.forEach(drawProjectile);
+          particles.forEach(drawParticle);
+          texts.forEach(drawText);
+          drawConfetti();
+          if (running) {
+            drawWoodenSign(now);
+            drawHint(now);
+          }
+          X.restore();
+        }
+
+        function loop(now) {
+          if (paused) return;
+          const dt = Math.min(0.033, (now - lastT) / 1000);
+          lastT = now;
+          if (running) update(dt);
+          render(now);
+          if (running) animId = requestAnimationFrame(loop);
+        }
+
+        function begin() {
+          reset();
+          generateCovers();
+          lastT = performance.now();
+          running = true;
+          paused = false;
+          startBgm();
+          $("ss").classList.add("h");
+          $("es").classList.add("h");
+          $("ps").classList.add("h");
+          if (animId) cancelAnimationFrame(animId);
+          animId = requestAnimationFrame(loop);
+        }
+
+        function startCD() {
+          ea();
+          clearInterval(cdI);
+          $("cd").classList.remove("h");
+          $("ss").classList.add("h");
+          $("es").classList.add("h");
+          let c = 3;
+          $("cd").textContent = c;
+          cdI = setInterval(() => {
+            c--;
+            if (c > 0) $("cd").textContent = c;
+            else if (c === 0) $("cd").textContent = "GO!";
+            else {
+              clearInterval(cdI);
+              $("cd").classList.add("h");
+              begin();
+            }
+          }, 550);
+        }
+
+        function endGame() {
+          running = false;
+          paused = false;
+          stopBgm();
+          const best = getHS();
+          if (score > best) setHS(score);
+          const isNew = score > best && score > 0;
+          const ratio = hits / (hits + misses || 1);
+          if (ratio > 0.7) $("endTitle").textContent = "Amazing!";
+          else if (ratio > 0.4) $("endTitle").textContent = "Not Bad!";
+          else $("endTitle").textContent = "Game Over!";
+          $("fs").textContent = score;
+          $("bestBadge").innerHTML = isNew ? '<div class="new-best">NEW BEST!</div>' : "";
+          $("bsl").textContent = "Best: " + getHS();
+          const mins = Math.floor(elapsed / 60);
+          const secs = Math.floor(elapsed % 60);
+          $("endStats").innerHTML = `
+<div class="stat-item"><div class="stat-val">${hits}</div><div class="stat-lbl">Hits</div></div>
+<div class="stat-item"><div class="stat-val">${misses}</div><div class="stat-lbl">Misses</div></div>
+<div class="stat-item"><div class="stat-val">x${maxCombo}</div><div class="stat-lbl">Best Combo</div></div>
+<div class="stat-item"><div class="stat-val">${mins}:${String(secs).padStart(2, "0")}</div><div class="stat-lbl">Survived</div></div>`;
+          $("es").classList.remove("h");
+          if (score > 100 || isNew) spawnConfetti(80);
+          // Send score to parent window (SharePoint web part) — delayed so game over screen shows first
+          setTimeout(() => {
+            try {
+              window.parent.postMessage(
+                {
+                  game: "EasterEggToss",
+                  score: score,
+                  time: Math.floor(elapsed),
+                  hits: hits,
+                  misses: misses,
+                  maxCombo: maxCombo,
+                  isNewBest: isNew,
+                },
+                "*",
+              );
+            } catch (e) {
+              console.error("Error sending score:", e);
+            }
+          }, 3000);
+          if (confetti.length > 0) {
+            const confettiLoop = () => {
+              const dt = 0.016;
+              for (let i = confetti.length - 1; i >= 0; i--) {
+                const c = confetti[i];
+                c.life -= dt;
+                c.x += c.vx * dt;
+                c.y += c.vy * dt;
+                c.vy += c.grav * dt;
+                c.rot += c.rotSpd * dt;
+                if (c.life <= 0) confetti.splice(i, 1);
+              }
+              render(performance.now());
+              if (confetti.length > 0) requestAnimationFrame(confettiLoop);
+            };
+            requestAnimationFrame(confettiLoop);
+          }
+        }
+
+        function togglePause() {
+          if (!running) return;
+          paused = !paused;
+          if (paused) {
+            const mins = Math.floor(elapsed / 60);
+            const secs = Math.floor(elapsed % 60);
+            $("pauseStats").innerHTML =
+              `<div class="stat-item"><div class="stat-val">${score}</div><div class="stat-lbl">Score</div></div>
+<div class="stat-item"><div class="stat-val">${mins}:${String(secs).padStart(2, "0")}</div><div class="stat-lbl">Time</div></div>
+<div class="stat-item"><div class="stat-val">${eggsLeft}</div><div class="stat-lbl">Eggs</div></div>`;
+            $("ps").classList.remove("h");
+            if (animId) cancelAnimationFrame(animId);
+            stopBgm();
+          } else {
+            $("ps").classList.add("h");
+            lastT = performance.now();
+            animId = requestAnimationFrame(loop);
+            startBgm();
+          }
+        }
+
+        function goMenu() {
+          running = false;
+          paused = false;
+          stopBgm();
+          clearInterval(cdI);
+          $("cd").classList.add("h");
+          $("ps").classList.add("h");
+          $("es").classList.add("h");
+          $("ss").classList.remove("h");
+          generateCovers();
+          render(performance.now());
+        }
+
+        // Init
+        resize();
+        generateCovers();
+        score = 0;
+        elapsed = 0;
+        eggsLeft = 12;
+        eggsMax = 12;
+        gameOverTimer = 0;
+        combo = 1;
+        hits = 0;
+        misses = 0;
+        maxCombo = 1;
+        projectiles = [];
+        particles = [];
+        splats = [];
+        texts = [];
+        confetti = [];
+        bunny = {
+          x: W / 2,
+          y: groundY(),
+          state: "taunt",
+          stateTimer: 2,
+          targetX: W / 2,
+          targetY: groundY(),
+          dir: 1,
+          hitFlash: 0,
+          coverIdx: -1,
+          peekDir: 0,
+          visible: true,
+          speed: 180,
+          scale: 1,
+          jumpT: 0,
+          hideProgress: 0,
+        };
+        render(performance.now());
+        // Re-render after iframe layout settles (fixes blank screen on SP reload)
+        setTimeout(() => { resize(); render(performance.now()); }, 100);
+        setTimeout(() => { resize(); render(performance.now()); }, 500);
+
+        window.addEventListener("resize", () => {
+          resize();
+          render(performance.now());
+        });
+        C.addEventListener("click", (e) => {
+          const r = C.getBoundingClientRect();
+          throwEgg(e.clientX - r.left, e.clientY - r.top);
+        });
+        C.addEventListener(
+          "touchstart",
+          (e) => {
+            e.preventDefault();
+            const r = C.getBoundingClientRect();
+            const t = e.touches[0];
+            throwEgg(t.clientX - r.left, t.clientY - r.top);
+          },
+          { passive: false },
+        );
+        document.addEventListener("keydown", (e) => {
+          if ((e.key === "Escape" || e.key === "p" || e.key === "P") && running) togglePause();
+        });
+
+        $("goBtn").addEventListener("click", startCD);
+        $("agBtn").addEventListener("click", startCD);
+        $("mnBtn").addEventListener("click", goMenu);
+        $("resBtn").addEventListener("click", togglePause);
+        $("qBtn").addEventListener("click", goMenu);
+      })();
+    </script>
+  </body>
+</html>
