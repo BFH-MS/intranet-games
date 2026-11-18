@@ -37,8 +37,3 @@ window.parent.postMessage({ score: finalScore }, '*');
 ```
 
 The full message protocol is described in the README of [BFH-MS/spfx-games](https://github.com/BFH-MS/spfx-games).
-
-## Origin of the files
-
-- 2023 and 2024: copied from [BFH-MS/adventskalender_minigames](https://github.com/BFH-MS/adventskalender_minigames).
-- Pacman is based on a third-party implementation; see `2024/pacman/LICENSE`.
