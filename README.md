@@ -29,11 +29,3 @@ Base address: `https://bfh-ms.github.io/intranet-games/`
 1. Put the HTML file (or a folder with an `index.html`) into the folder of the year.
 2. Commit to `main`. GitHub Pages publishes the change after one to two minutes.
 3. Enter the address of the game in the web part on the SharePoint page.
-
-To take part in the high score list, a game sends its result to the page that embeds it:
-
-```js
-window.parent.postMessage({ score: finalScore }, '*');
-```
-
-The full message protocol is described in the README of [BFH-MS/spfx-games](https://github.com/BFH-MS/spfx-games).
