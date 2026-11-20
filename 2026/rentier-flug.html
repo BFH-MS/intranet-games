@@ -1031,9 +1031,9 @@ function drawHUD() {
   }
 }
 function render() {
-  drawBackground();
   ctx.save();
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);   // before anything is drawn: the sky must cover the whole canvas on scaled displays too
+  drawBackground();
   ctx.save();
   ctx.translate(0, offY); ctx.scale(S, S);
   if (shake > 0) ctx.translate((Math.random() - 0.5) * 14 * shake / 0.45, (Math.random() - 0.5) * 14 * shake / 0.45);
