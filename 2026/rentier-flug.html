@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="de-CH">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Rentier-Flug</title>
+<title>Reindeer Flight</title>
 <style>
 :root{
   --night1:#0b1d3a;--night2:#1c3b6b;--snow:#f7fbff;--ice:#a9d6ff;
@@ -46,24 +46,24 @@ h1{margin:0;font-size:40px;line-height:1.1;font-weight:800;letter-spacing:.5px;c
 </head>
 <body>
 <div id="stage">
-  <canvas id="cv" aria-label="Rentier-Flug Spielfeld"></canvas>
+  <canvas id="cv" aria-label="Reindeer Flight game area"></canvas>
   <div class="overlay" id="ovStart">
     <div class="panel" role="dialog" aria-labelledby="tStart">
-      <h1 id="tStart">Rentier-Flug</h1>
-      <p class="sub">Hilf Rudolph durch den Winterwald</p>
-      <p class="how">Klicke oder drücke die Leertaste zum Flattern<small>Flieg knapp über die Kamine: Jede Lieferung in Folge erhöht den Multiplikator bis ×5. Fünf Sterne zünden den Nordlicht-Turbo, die Glocke schützt dich einmal. Und rechne mit Überraschungen.</small></p>
+      <h1 id="tStart">Reindeer Flight</h1>
+      <p class="sub">Help Rudolph through the winter forest</p>
+      <p class="how">Click or press the space bar to flap<small>Fly close over the chimneys: every delivery in a row raises the multiplier up to ×5. Five stars ignite the northern lights turbo, the bell protects you once. And expect surprises.</small></p>
       <button class="btn" id="btnStart" type="button">Start</button>
     </div>
   </div>
   <div class="overlay" id="ovOver" hidden>
     <div class="panel" role="dialog" aria-labelledby="tOver">
-      <h1 id="tOver">Autsch!</h1>
+      <h1 id="tOver">Ouch!</h1>
       <div class="big" id="vScore">0</div>
-      <div class="lbl">Punkte</div>
-      <div class="best">Bestwert: <b id="vBest">0</b></div>
-      <div class="badge" id="vBadge" hidden>Neuer Bestwert!</div>
+      <div class="lbl">points</div>
+      <div class="best">Best: <b id="vBest">0</b></div>
+      <div class="badge" id="vBadge" hidden>New best!</div>
       <p class="msg" id="vMsg"></p>
-      <button class="btn" id="btnAgain" type="button">Nochmals</button>
+      <button class="btn" id="btnAgain" type="button">Play again</button>
     </div>
   </div>
 </div>
@@ -291,7 +291,7 @@ function collect(ob) {
   if (pick.kind === 'shield') {
     shield = true;
     sparkle(ob.x, y, 14);
-    addPopup(ob.x, y - 24, 'Schutzglocke!', '169,214,255');
+    addPopup(ob.x, y - 24, 'Shield bell!', '169,214,255');
     return;
   }
   sparkle(ob.x, y, 22);
@@ -299,35 +299,35 @@ function collect(ob) {
   if (++starCount >= TURBO_STARS) {
     starCount = 0; turboT = TURBO_TIME;
     sparkle(PX, rud.y, 40);
-    addPopup(PX + 70, rud.y - 40, 'Nordlicht-Turbo!', '91,245,192');
+    addPopup(PX + 70, rud.y - 40, 'Northern lights turbo!', '91,245,192');
   }
 }
 function deliver(ob) {
   delivered++;
   streak++; streakPop = 1;
   if (streak > bestStreak) bestStreak = streak;
-  addPopup(ob.x, ob.gapY + ob.gap / 2 - 34, 'Geliefert! +' + addScore(2), '244,197,66');
+  addPopup(ob.x, ob.gapY + ob.gap / 2 - 34, 'Delivered! +' + addScore(2), '244,197,66');
   addP({ x: PX, y: rud.y + 12, vx: 0, vy: 120, g: 1400, life: 0.45, r: 5, col: '214,40,57', w: true, gift: true });
 }
 /** Rudolph flew past a chimney without delivering: the streak is lost. */
 function missDelivery(ob) {
   if (streak === 0) return;
   streak = 0; streakPop = 1;
-  addPopup(ob.x, ob.gapY + ob.gap / 2 - 34, 'Serie gerissen', '255,130,140');
+  addPopup(ob.x, ob.gapY + ob.gap / 2 - 34, 'Streak lost', '255,130,140');
 }
 function smash(ob) {
   ob.gone = true;
   const points = addScore(1);
   if (!reduced) shake = Math.max(shake, 0.15);
   sparkle(ob.x, rud.y, 26);
-  addPopup(ob.x, rud.y - 30, 'Krach! +' + points, '91,245,192');
+  addPopup(ob.x, rud.y - 30, 'Crash! +' + points, '91,245,192');
 }
 function breakShield() {
   shield = false; graceT = GRACE;
   rud.vy = FLAP * 0.8;
   if (!reduced) shake = 0.3;
   flash = 0.5;
-  addPopup(PX + 40, rud.y - 34, 'Glocke zerbrochen!', '169,214,255');
+  addPopup(PX + 40, rud.y - 34, 'Bell broken!', '169,214,255');
 }
 /** Rudolph touched an obstacle (or, with ob = null, the ground or the top edge). */
 function collide(ob) {
@@ -339,11 +339,11 @@ function collide(ob) {
 
 /* ---------- surprise events: every few seconds one of these changes the rules for a moment ---------- */
 const EVENTS = [
-  { id: 'dark',      title: 'Nebelnacht – folge der Nase!', time: 7, dark: true },
-  { id: 'balls',     title: 'Schneeballschlacht!',          time: 7, every: 0.85, spawn: spawnBall },
-  { id: 'gifts',     title: 'Geschenkeregen!',              time: 6, every: 0.4,  spawn: spawnGift },
-  { id: 'updraft',   title: 'Aufwind!',                     time: 6, wind: -240 },
-  { id: 'downdraft', title: 'Fallwind!',                    time: 6, wind: 420 }
+  { id: 'dark',      title: 'Foggy night – follow the nose!', time: 7, dark: true },
+  { id: 'balls',     title: 'Snowball fight!',          time: 7, every: 0.85, spawn: spawnBall },
+  { id: 'gifts',     title: 'Raining gifts!',              time: 6, every: 0.4,  spawn: spawnGift },
+  { id: 'updraft',   title: 'Updraft!',                     time: 6, wind: -240 },
+  { id: 'downdraft', title: 'Downdraft!',                    time: 6, wind: 420 }
 ];
 /** 0..1: how strongly the running event is in effect (it fades in and out). */
 const eventFade = () => curEvent ? clamp(Math.min(curEvent.time - eventT, eventT) / EVENT_FADE, 0, 1) : 0;
@@ -385,11 +385,11 @@ function hitsObstacle(t) {
 function touchThing(t) {
   if (t.kind === 'gift') {
     sparkle(t.x, t.y, 12);
-    addPopup(t.x, t.y - 24, 'Gefangen! +' + addScore(3), '244,197,66');
+    addPopup(t.x, t.y - 24, 'Caught! +' + addScore(3), '244,197,66');
     return;
   }
   puff(t);
-  if (turboT > 0) addPopup(t.x, t.y - 24, 'Paff! +' + addScore(1), '91,245,192');
+  if (turboT > 0) addPopup(t.x, t.y - 24, 'Pow! +' + addScore(1), '91,245,192');
   else collide(null);
 }
 /** Moves snowballs and gifts; Rudolph catches gifts and is hit by snowballs, obstacles stop snowballs. */
@@ -430,11 +430,11 @@ function showGameOver() {
   vScore.textContent = String(score);
   vBest.textContent = String(best);
   vBadge.hidden = !newBest;
-  tOver.textContent = score >= 150 ? 'Fantastisch!' : (score >= 50 ? 'Gut geflogen!' : 'Autsch!');
-  vMsg.textContent = (delivered === 1 ? '1 Geschenk' : delivered + ' Geschenke') + ' abgeliefert, längste Serie ' + bestStreak + '. ' + (
-    score < 15 ? 'Rudolph braucht noch etwas Training.' :
-    score < 50 ? 'Schon ganz ordentlich!' :
-    score < 150 ? 'Fast wie ein Profi-Rentier!' : 'Der Weihnachtsmann ist stolz auf dich!');
+  tOver.textContent = score >= 150 ? 'Fantastic!' : (score >= 50 ? 'Well flown!' : 'Ouch!');
+  vMsg.textContent = (delivered === 1 ? '1 gift' : delivered + ' gifts') + ' delivered, longest streak ' + bestStreak + '. ' + (
+    score < 15 ? 'Rudolph needs a bit more practice.' :
+    score < 50 ? 'Not bad at all!' :
+    score < 150 ? 'Almost a professional reindeer!' : 'Santa is proud of you!');
   ovOver.hidden = false;
   overShownAt = Date.now();
   try { btnAgain.focus(); } catch (e) { /* ignore */ }
@@ -989,8 +989,8 @@ function drawRudolph() {
 }
 function drawHUD() {
   const pad = 14 * S;
-  // Bestwert
-  const bt = 'Bestwert ' + Math.max(best, score);
+  // best score
+  const bt = 'Best ' + Math.max(best, score);
   ctx.font = '600 ' + Math.round(18 * S) + 'px "Segoe UI", system-ui, sans-serif';
   ctx.textBaseline = 'middle'; ctx.textAlign = 'right';
   const tw = ctx.measureText(bt).width, ph = 34 * S;
@@ -1021,7 +1021,7 @@ function drawHUD() {
     ctx.fillStyle = pop > 0 ? '#f4c542' : '#f7fbff';
     ctx.fillText(String(score), cssW / 2, y);
     if (streak > 0 || streakPop > 0) {
-      const text = streak > 0 ? 'Serie ×' + multiplier() : 'Serie gerissen';
+      const text = streak > 0 ? 'Streak ×' + multiplier() : 'Streak lost';
       ctx.font = '800 ' + Math.round(20 * S * (1 + streakPop * 0.3)) + 'px "Segoe UI", system-ui, sans-serif';
       ctx.lineWidth = 4 * S;
       ctx.strokeText(text, cssW / 2, y + 28 * S);

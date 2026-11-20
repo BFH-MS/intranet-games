@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="de-CH">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Geschenke-Turm</title>
+<title>Gift Tower</title>
 <style>
   html,body{margin:0;height:100%;overflow:hidden;background:#0b1d3a;font-family:"Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;color:#f7fbff}
   #wrap{position:fixed;inset:0}
@@ -25,7 +25,7 @@
 </head>
 <body>
 <div id="wrap">
-  <canvas id="c" aria-label="Geschenke-Turm Spielfeld"></canvas>
+  <canvas id="c" aria-label="Gift Tower game area"></canvas>
   <div id="ov">
     <div class="card" id="card"></div>
   </div>
@@ -47,8 +47,8 @@ function computeLanding(topX, topW, newX, newW, tol) {
   if (newX > topX) { c1 = r; c2 = nr; } else { c1 = nl; c2 = l; }
   return { hit: true, perfect: false, x: (l + r) / 2, w: ov, cut: { x: (c1 + c2) / 2, w: c2 - c1 } };
 }
-// Ramps up quickly until block 26, then keeps creeping up so the game never settles.
-function speedFor(n, W0) { return W0 * (Math.min(1.6, 0.6 + 0.04 * (n - 1)) + Math.min(0.5, Math.max(0, n - 26) * 0.01)); }
+// Ramps up quickly until block 24, then keeps creeping up so the game never settles.
+function speedFor(n, W0) { return W0 * (Math.min(2, 0.85 + 0.05 * (n - 1)) + Math.min(0.8, Math.max(0, n - 24) * 0.015)); }
 
 /* ---------- host bridge: talks to the embedding page (see README) ---------- */
 var host = (function () {
@@ -67,19 +67,20 @@ var host = (function () {
   };
 })();
 
-var W0 = 200, H = 36, GAP = H * 2, TOL = 0.045, GROUND = 60;
+var W0 = 200, H = 36, GAP = H * 2, TOL = 0.03, GROUND = 60;
 var RESTART_LOCK = 450; // ms the game-over card ignores input, so a late key press does not restart
 var STREAK_CAP = 5;      // a perfect streak adds up to this many extra points per gift
-var GOLD_FIRST = 8, GOLD_EVERY = 10, GOLD_VAR = 5;   // blocks until the first golden gift / between two
+var GUIDE_UNTIL = 5;     // the drop guide is only shown for the first gifts
+var GOLD_FIRST = 12, GOLD_EVERY = 14, GOLD_VAR = 6;   // blocks until the first golden gift / between two
 var COLORS = [
   { b: '#d62839', r: '#f4c542' }, { b: '#1f7a4d', r: '#f7fbff' }, { b: '#a9d6ff', r: '#d62839' },
   { b: '#f7fbff', r: '#d62839' }, { b: '#f4c542', r: '#1f7a4d' }, { b: '#2f64b5', r: '#f7fbff' },
   { b: '#ffd75e', r: '#ffffff' }   // golden gift
 ];
 var PLAIN_COLORS = 6, GOLD_COLOR = 6;
-/* Special gifts: 'pulse' swings at an uneven speed, 'ghost' fades in and out,
-   'gold' restores the full width when it lands perfectly. */
-var KIND_LABEL = { pulse: 'Zappel-Geschenk!', ghost: 'Geister-Geschenk!', gold: 'Goldenes Geschenk!' };
+/* Special gifts: 'pulse' swings at an uneven speed, 'ghost' fades in and out, 'turbo' is faster,
+   'zigzag' turns around at random, 'gold' restores the full width when it lands perfectly. */
+var KIND_LABEL = { pulse: 'Jittery gift!', ghost: 'Ghost gift!', turbo: 'Turbo gift!', zigzag: 'Zigzag gift!', gold: 'Golden gift!' };
 
 var canvas = document.getElementById('c');
 var ctx = canvas.getContext('2d');
@@ -118,17 +119,20 @@ function limA(w) { return Math.max(W0 * 0.6, Math.min(W0 * 1.15, vwL / 2 - w / 2
 
 function pickKind(n) {
   if (n >= nextGold) { nextGold = n + GOLD_EVERY + Math.floor(Math.random() * GOLD_VAR); return 'gold'; }
-  var r = Math.random();
-  if (n >= 6 && r < 0.22) return 'pulse';
-  if (n >= 10 && r < 0.4) return 'ghost';
-  return 'plain';
+  // the share of special gifts grows with the height of the tower
+  if (n < 3 || Math.random() > Math.min(0.75, 0.3 + n * 0.012)) return 'plain';
+  var kinds = ['pulse'];
+  if (n >= 5) kinds.push('turbo');
+  if (n >= 8) kinds.push('ghost');
+  if (n >= 11) kinds.push('zigzag');
+  return kinds[Math.floor(Math.random() * kinds.length)];
 }
 function spawn() {
   var n = blocks.length, top = blocks[n - 1];
   var side = (n % 2 === 0) ? 1 : -1;
   var A = limA(top.w);
   var kind = pickKind(n);
-  cur = { x: side * A, vx: -side, w: top.w, y: n * H + GAP, vy: 0, kind: kind, ci: kind === 'gold' ? GOLD_COLOR : n % PLAIN_COLORS };
+  cur = { x: side * A, vx: -side, w: top.w, y: n * H + GAP, vy: 0, kind: kind, turnT: rnd(0.5, 1.1), ci: kind === 'gold' ? GOLD_COLOR : n % PLAIN_COLORS };
   if (KIND_LABEL[kind]) fx.push({ txt: KIND_LABEL[kind], x: 0, y: cur.y + H + 34, t: 0, small: true });
 }
 function reset() {
@@ -161,9 +165,9 @@ function land() {
   if (res.perfect) {
     streak++; gain = 1 + Math.min(streak, STREAK_CAP);
     var grew = '';
-    if (cur.kind === 'gold' && nb.w < W0) { nb.w = W0; grew = 'Volle Breite!'; }
-    else if (streak >= 3 && nb.w < W0) { nb.w = Math.min(W0, nb.w + W0 * 0.05); grew = 'Breiter!'; }
-    fx.push({ txt: 'Perfekt! +' + gain, x: nb.x, y: n * H + H, t: 0 });
+    if (cur.kind === 'gold' && nb.w < W0) { nb.w = W0; grew = 'Full width!'; }
+    else if (streak >= 3 && nb.w < W0) { nb.w = Math.min(W0, nb.w + W0 * 0.05); grew = 'Wider!'; }
+    fx.push({ txt: 'Perfect! +' + gain, x: nb.x, y: n * H + H, t: 0 });
     if (grew) fx.push({ txt: grew, x: nb.x, y: n * H + H + 26, t: -0.15, small: true });
     for (var i = 0; i < 16; i++) {
       var a = rnd(0, 6.28), s = rnd(60, 190);
@@ -186,17 +190,17 @@ function endGame() {
 }
 
 function showOver(s, isNew) {
-  card.innerHTML = '<h1>' + (isNew && s > 0 ? 'Neuer <span>Bestwert!</span>' : 'Turm <span>gefallen</span>') + '</h1>' +
-    '<div class="big">' + s + '</div><div class="best">Punkte &middot; Bestwert: ' + best + '</div>' +
-    '<button id="btn" type="button">Nochmals</button>';
+  card.innerHTML = '<h1>' + (isNew && s > 0 ? 'New <span>best!</span>' : 'Tower <span>down</span>') + '</h1>' +
+    '<div class="big">' + s + '</div><div class="best">points &middot; Best: ' + best + '</div>' +
+    '<button id="btn" type="button">Play again</button>';
   ov.classList.remove('hide');
   var b = document.getElementById('btn');
   b.addEventListener('click', startGame);
   try { b.focus({ preventScroll: true }); } catch (e) {}
 }
 function showStart() {
-  card.innerHTML = '<h1>Geschenke-<span>Turm</span></h1>' +
-    '<p>Tippe, klicke oder drücke die Leertaste, um das Geschenk fallen zu lassen. Was übersteht, fällt ab – stapel so hoch du kannst! Perfekte Treffer in Serie geben immer mehr Punkte, ein perfekt gesetztes goldenes Geschenk macht den Turm wieder breit.</p>' +
+  card.innerHTML = '<h1>Gift <span>Tower</span></h1>' +
+    '<p>Tap, click or press the space bar to drop the gift. Whatever hangs over the edge falls off, so stack as high as you can! Perfect drops in a row score more and more points, and a golden gift placed perfectly makes the tower wide again.</p>' +
     '<button id="btn" type="button">Start</button>';
   ov.classList.remove('hide');
   document.getElementById('btn').addEventListener('click', startGame);
@@ -225,8 +229,14 @@ function update(dt) {
   if (phase === 'swing' || phase === 'ready') {
     var sp = phase === 'ready' ? W0 * 0.5 : speedFor(n, W0);
     var A = limA(cur.w);
-    if (cur.kind === 'pulse') sp *= 1 + 0.55 * Math.sin(tAll * 6);
-    cur.vx = (cur.vx >= 0 ? 1 : -1) * sp;
+    if (cur.kind === 'pulse') sp *= 1 + 0.6 * Math.sin(tAll * 6);
+    if (cur.kind === 'turbo') sp *= 1.45;
+    var dir = cur.vx >= 0 ? 1 : -1;
+    if (cur.kind === 'zigzag' && phase === 'swing') {
+      cur.turnT -= dt;
+      if (cur.turnT <= 0) { dir = -dir; cur.turnT = rnd(0.35, 1.1); }
+    }
+    cur.vx = dir * sp;
     cur.x += cur.vx * dt;
     if (cur.x > A) { cur.x = 2 * A - cur.x; cur.vx = -Math.abs(cur.vx); }
     if (cur.x < -A) { cur.x = -2 * A - cur.x; cur.vx = Math.abs(cur.vx); }
@@ -391,7 +401,7 @@ function drawHUD() {
   ctx.textAlign = 'right';
   ctx.font = '600 ' + Math.max(14, Math.min(20, vh * 0.032)) + 'px "Segoe UI",system-ui,sans-serif';
   ctx.fillStyle = '#a9d6ff';
-  ctx.fillText('Bestwert ' + best, vw - 16, 30);
+  ctx.fillText('Best ' + best, vw - 16, 30);
 }
 
 function draw() {
@@ -407,7 +417,7 @@ function draw() {
   }
   if (phase === 'swing' || phase === 'drop' || phase === 'ready') {
     var ghost = cur.kind === 'ghost' && phase === 'swing';
-    if (phase !== 'drop' && !ghost) { // soft drop guide
+    if (phase !== 'drop' && !ghost && blocks.length <= GUIDE_UNTIL) { // soft drop guide, a help for the first gifts only
       ctx.fillStyle = 'rgba(247,251,255,.07)';
       ctx.fillRect(sx(cur.x) - cur.w / 2, sy(cur.y), cur.w, vhL);
     }

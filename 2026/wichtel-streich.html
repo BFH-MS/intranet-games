@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="de-CH">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>Wichtel-Streich</title>
+<title>Elf Prank</title>
 <style>
 :root{--night1:#0b1d3a;--night2:#1c3b6b;--snow:#f7fbff;--ice:#a9d6ff;--red:#d62839;--pine:#1f7a4d;--gold:#f4c542}
 *{box-sizing:border-box}
@@ -30,32 +30,32 @@ button:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
 </style>
 </head>
 <body>
-<canvas id="cv" aria-label="Wichtel-Streich Spielfeld"></canvas>
+<canvas id="cv" aria-label="Elf Prank game area"></canvas>
 
 <div class="tc" id="tc">
-  <div class="grp"><button type="button" data-k="l" aria-label="Links">&#9664;</button><button type="button" data-k="r" aria-label="Rechts">&#9654;</button></div>
-  <div class="grp"><button type="button" data-k="j" aria-label="Springen">&#9650;</button></div>
+  <div class="grp"><button type="button" data-k="l" aria-label="Left">&#9664;</button><button type="button" data-k="r" aria-label="Right">&#9654;</button></div>
+  <div class="grp"><button type="button" data-k="j" aria-label="Jump">&#9650;</button></div>
 </div>
 
 <div class="overlay" id="ovStart">
   <div class="card">
-    <h1>Wichtel-<span>Streich</span></h1>
-    <div class="sub">Bring den Samichlaus durch die Stuben</div>
-    <p>Durchquere die Stube und verschwinde rechts im Kamin. Aber Vorsicht: Der Wichtel hat überall Streiche vorbereitet! Du hast drei Leben, und wer schnell durch den Raum kommt, holt den Tempo-Bonus.</p>
-    <p class="small">Pfeiltasten oder A/D laufen, Leertaste springt (am Handy: Tasten unten).</p>
+    <h1>Elf <span>Prank</span></h1>
+    <div class="sub">Get Santa through the living rooms</div>
+    <p>Cross the room and disappear into the fireplace on the right. But beware: the elf has set up pranks everywhere! You have three lives, and crossing a room quickly earns the speed bonus.</p>
+    <p class="small">Arrow keys or A/D to walk, space bar to jump (on a phone: buttons below).</p>
     <button type="button" class="big" id="btnStart">Start</button>
-    <p class="small">Klicke zum Starten</p>
+    <p class="small">Click to start</p>
   </div>
 </div>
 
 <div class="overlay" id="ovOver" hidden>
   <div class="card" role="dialog" aria-live="polite">
-    <h1 id="goMsg">Der Wichtel lacht!</h1>
-    <p class="sub" id="goRoom">Raum 1</p>
+    <h1 id="goMsg">The elf is laughing!</h1>
+    <p class="sub" id="goRoom">Room 1</p>
     <div class="score" id="goScore">0</div>
-    <p>Punkte</p>
-    <p class="small" id="goBest">Bestwert: 0</p>
-    <button type="button" class="big" id="btnAgain">Nochmals</button>
+    <p>points</p>
+    <p class="small" id="goBest">Best: 0</p>
+    <button type="button" class="big" id="btnAgain">Play again</button>
   </div>
 </div>
 
@@ -110,12 +110,12 @@ var parts=[];
 var keys={l:false,r:false,j:false},touch={l:false,r:false,j:false};
 
 var MSG={
-  spike:['Aua! Reissnägel im Boden.','Spitz! Der Wichtel lacht!'],
-  fall:['Ab in den Keller! Der Wichtel lacht!','Tief gefallen. Der Chlaus seufzt.'],
-  ball:['Von der Christbaumkugel überrollt!','Die Kugel war schneller!'],
-  weight:['Hundert Kilo von oben!','Kopf hoch! Zu spät.'],
-  gift:['Überraschung! Das Päckli hat gebissen.','Kein Geschenk, eine Falle!'],
-  fake:['Falscher Kamin! Der Wichtel lacht!','Dieser Kamin war ein Streich.']
+  spike:['Ouch! Tacks in the floor.','Pointy! The elf is laughing!'],
+  fall:['Down to the cellar! The elf is laughing!','A long way down. Santa sighs.'],
+  ball:['Run over by a Christmas bauble!','The bauble was faster!'],
+  weight:['A hundred kilos from above!','Heads up! Too late.'],
+  gift:['Surprise! The parcel bit you.','Not a gift, a trap!'],
+  fake:['Wrong fireplace! The elf is laughing!','That fireplace was a prank.']
 };
 function pick(a){return a[Math.floor(rnd()*a.length)]}
 
@@ -280,7 +280,7 @@ var TRAPS={
       rect:function(){return b.alive&&!b.fall?{x:b.x-11,y:b.y-11,w:22,h:22}:null},
       draw:function(c,t){
         if(b.warn>0){var a=0.5+0.5*Math.sin(t*20);c.fillStyle='rgba(244,197,66,'+a+')';
-          c.font='bold 16px "Segoe UI",sans-serif';c.textAlign='right';c.textBaseline='alphabetic';c.fillText('Kugel rollt! ◀',W-14,FLOOR-30);}
+          c.font='bold 16px "Segoe UI",sans-serif';c.textAlign='right';c.textBaseline='alphabetic';c.fillText('Bauble rolling! ◀',W-14,FLOOR-30);}
         if(!b.alive)return;
         c.save();c.translate(b.x,b.y);c.rotate(b.rot);
         var g=c.createRadialGradient(-5,-5,2,0,0,16);g.addColorStop(0,'#ffb3ba');g.addColorStop(1,'#b3122a');
@@ -383,7 +383,7 @@ function genRoom(n){
   r.deco={pal:Math.floor(rnd()*WALLS.length),win:70+rnd()*130,pic:Math.floor(rnd()*3)};
   r.deco.clock=r.deco.win+318;r.deco.tree=Math.min(632,r.deco.win+430+rnd()*50);
   if(n%10===0){
-    r.bonus=true;r.hint='Chlaus-Bonus! Hier lügt niemand.';
+    r.bonus=true;r.hint='Santa bonus! No tricks in here.';
   }else{
     var cnt=n<=2?1:n<=6?(rnd()<0.7?2:1):n<=12?(rnd()<0.4?3:2):(rnd()<0.65?3:2);
     var all=Object.keys(TRAPS).filter(function(k){var t=TRAPS[k];return t.min<=n&&(n>2||t.mild)});
@@ -415,9 +415,9 @@ function genRoom(n){
     chosen.forEach(function(k){if(TRAPS[k].w===0)TRAPS[k].build(r,0,d)});
     r.names=chosen.slice();
     game.last=chosen.slice();
-    if(n===1)r.hint='Traue keinem Raum!';
-    else if(n===2)r.hint='Der Wichtel schaut zu ...';
-    else if(n===3)r.hint='Nicht alles ist, wie es scheint.';
+    if(n===1)r.hint='Trust no room!';
+    else if(n===2)r.hint='The elf is watching ...';
+    else if(n===3)r.hint='Not everything is what it seems.';
   }
   // floor
   r.gaps.sort(function(a,b){return a.x-b.x});
@@ -453,9 +453,9 @@ function endGame(){
   game.state='over';
   if(game.score>game.best)game.best=game.score;
   document.getElementById('goMsg').textContent=game.msg;
-  document.getElementById('goRoom').textContent='Raum '+(game.rooms+1);
+  document.getElementById('goRoom').textContent='Room '+(game.rooms+1);
   document.getElementById('goScore').textContent=String(game.score);
-  document.getElementById('goBest').textContent='Bestwert: '+game.best;
+  document.getElementById('goBest').textContent='Best: '+game.best;
   document.body.classList.remove('playing');
   releaseAll();
   ovOver.hidden=false;game.overAt=performance.now();
@@ -471,8 +471,8 @@ function nextRoomSwap(){
   enterRoom(game.rooms+1);
   if(room.bonus){
     burst(W/2,20,90,['#fff','#a9d6ff','#f4c542','#d62839'],260,-80);
-    if(game.lives<MAX_LIVES){game.lives++;room.hint='Chlaus-Bonus! Ein Leben zurück.'}
-  }else if(!room.hint)room.hint='Raum geschafft: +'+game.gain+' Punkte';
+    if(game.lives<MAX_LIVES){game.lives++;room.hint='Santa bonus! One life back.'}
+  }else if(!room.hint)room.hint='Room cleared: +'+game.gain+' points';
 }
 
 /* ---------- input ---------- */
@@ -921,7 +921,7 @@ function paintRoom(c,r){
   paintPicture(c,d.win+WIN.w+84,186,d.pic);
   paintClock(c,d.clock);
   paintTree(c,d.tree);
-  c.fillStyle='rgba(8,8,18,.16)';c.fillRect(0,0,W,FLOOR);   // pushes the room back so traps and the Samichlaus stand out
+  c.fillStyle='rgba(8,8,18,.16)';c.fillRect(0,0,W,FLOOR);   // pushes the room back so traps and Santa stand out
 }
 function animateRoom(c,r,t){
   var d=r.deco,i,k,p,x=d.win,tt=reduced?0:t;
@@ -1007,14 +1007,14 @@ function drawRoom(c,t){
   // HUD
   c.font='bold 20px "Segoe UI",system-ui,sans-serif';c.textBaseline='top';
   c.textAlign='left';c.fillStyle='#f7fbff';c.shadowColor='rgba(0,0,0,.5)';c.shadowBlur=4;
-  c.fillText('Punkte: '+game.score,16,12);
+  c.fillText('Score: '+game.score,16,12);
   c.font='600 14px "Segoe UI",system-ui,sans-serif';c.fillStyle='#a9d6ff';
-  c.fillText('Raum '+r.n,16,38);
+  c.fillText('Room '+r.n,16,38);
   c.textAlign='right';c.font='bold 20px "Segoe UI",system-ui,sans-serif';c.fillStyle='#f4c542';
-  c.fillText('Bestwert: '+Math.max(game.best,game.score),W-16,12);
+  c.fillText('Best: '+Math.max(game.best,game.score),W-16,12);
   if(game.state==='play'&&speedBonus()>0){
     c.font='600 14px "Segoe UI",system-ui,sans-serif';c.fillStyle='#a9d6ff';
-    c.fillText('Tempo-Bonus +'+speedBonus(),W-16,38);
+    c.fillText('Speed bonus +'+speedBonus(),W-16,38);
   }
   c.shadowBlur=0;
   for(var hi=0;hi<MAX_LIVES;hi++)drawHeart(c,84+hi*20,46,7,hi<game.lives);

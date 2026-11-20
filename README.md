@@ -10,10 +10,10 @@ Base address: `https://bfh-ms.github.io/intranet-games/`
 
 | Year | Game | Path | Sends score to the web part |
 | --- | --- | --- | --- |
-| 2026 | Rentier-Flug | `2026/rentier-flug.html` | yes |
-| 2026 | Wichtel-Streich | `2026/wichtel-streich.html` | yes |
-| 2026 | Guetzli-Ninja | `2026/guetzli-ninja.html` | yes |
-| 2026 | Geschenke-Turm | `2026/geschenke-turm.html` | yes |
+| 2026 | Reindeer Flight (Rentier-Flug) | `2026/rentier-flug.html` | yes |
+| 2026 | Elf Prank (Wichtel-Streich) | `2026/wichtel-streich.html` | yes |
+| 2026 | Cookie Ninja (Guetzli-Ninja) | `2026/guetzli-ninja.html` | yes |
+| 2026 | Gift Tower (Geschenke-Turm) | `2026/geschenke-turm.html` | yes |
 | 2026 (Easter) | Easter Egg Toss | `2026/easter-egg-toss.html` | yes |
 | 2025 | Flappy BFH | `2025/flappy-bfh.html` | no |
 | 2025 | Santa Crossing | `2025/santa-crossing.html` | no |

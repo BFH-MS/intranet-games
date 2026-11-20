@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="de-CH">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-<title>Guetzli-Ninja</title>
+<title>Cookie Ninja</title>
 <style>
   :root{--night1:#0b1d3a;--night2:#1c3b6b;--snow:#f7fbff;--ice:#a9d6ff;--red:#d62839;--pine:#1f7a4d;--gold:#f4c542;}
   *{box-sizing:border-box}
@@ -25,22 +25,22 @@
 </head>
 <body>
 <div id="wrap">
-  <canvas id="c" aria-label="Spielfeld"></canvas>
+  <canvas id="c" aria-label="Game area"></canvas>
   <div class="overlay" id="startOv">
     <div class="card">
-      <h1>Guetzli-Ninja</h1>
-      <p>Zieh mit gedrückter Maustaste (oder dem Finger) durch die Guetzli und schneide sie entzwei. Du hast 90 Sekunden, jede Combo schenkt dir eine dazu. Lass Verbrannte und Kohle in Ruhe, sonst gehen die Herzen aus!</p>
-      <p class="hint">Verpasste Guetzli sind kein Problem. 3+ schnell hintereinander gibt eine Combo. Gold bringt +5 und Zeitlupe, das Eis-Guetzli stoppt die Uhr, das Riesen-Guetzli braucht zwei Schnitte.</p>
+      <h1>Cookie Ninja</h1>
+      <p>Hold the mouse button (or your finger) and swipe through the cookies to slice them. You have 60 seconds, and combos add time. Leave burnt cookies and coal alone, or you lose a heart!</p>
+      <p class="hint">Cookies sliced in a row raise your multiplier up to ×4; a dropped cookie lowers it. 3+ in one swipe is a combo. Gold starts a cookie frenzy, the ice cookie stops the clock, the giant cookie needs two cuts.</p>
       <button id="startBtn" type="button">Start</button>
     </div>
   </div>
   <div class="overlay" id="overOv" hidden>
     <div class="card">
-      <h1>Fertig gebacken!</h1>
-      <p>Dein Resultat</p>
+      <h1>All baked!</h1>
+      <p>Your score</p>
       <div class="big" id="finalScore">0</div>
-      <p>Bestwert: <b id="finalBest">0</b> <span id="newBest"></span></p>
-      <button id="againBtn" type="button">Nochmals</button>
+      <p>Best: <b id="finalBest">0</b> <span id="newBest"></span></p>
+      <button id="againBtn" type="button">Play again</button>
     </div>
   </div>
 </div>
@@ -54,14 +54,17 @@ var finalScore=document.getElementById('finalScore'),finalBest=document.getEleme
 var reduced=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 var W=800,H=600,dpr=1,S=1,R=38,G=1300,bgGrad=null;
-var ROUND=90;      // seconds per round
+var ROUND=60;      // seconds per round
 var COMBO_GAP=.4;  // a combo ends when nothing was sliced for this long
-var COMBO_TIME=1;  // seconds a combo adds to the round
-var FREEZE_TIME=4; // seconds the ice Guetzli stops the clock
+var COMBO_TIME=.5; // seconds a combo adds to the round
+var BONUS_CAP=20;  // most seconds combos can add in one round
+var FREEZE_TIME=3; // seconds the ice cookie stops the clock
+var FRENZY_TIME=4.5; // seconds a golden cookie makes cookies pour in from the sides
 var FINALE_AT=8;   // seconds left when the final sprint starts
+var CHAIN=[0,8,20,40]; // cookies sliced in a row needed for multiplier x1..x4
 var state='menu'; // menu | play | dying | over
-var best=0,score=0,lives=3,elapsed=0,spawnT=1,spawnQ=[],slowT=0,shakeT=0,flashT=0,dyingT=0,posted=false;
-var bonusT=0,freezeT=0,finale=false;
+var best=0,score=0,lives=3,elapsed=0,spawnT=1,spawnQ=[],shakeT=0,flashT=0,dyingT=0,posted=false;
+var bonusT=0,freezeT=0,finale=false,chain=0,frenzyT=0,frenzyQ=0;
 var cookies=[],halves=[],parts=[],pops=[],snow=[],trail=[];
 var pressed=false,pid=-1,lastX=0,lastY=0,swipeN=0,swipeIdle=0,swipeX=0,swipeY=0,clock=0;
 
@@ -116,8 +119,8 @@ function segCircle(x0,y0,x1,y1,cx,cy,r){
 /* ---------- game flow ---------- */
 function resetGame(){
   cookies=[];halves=[];parts=[];pops=[];trail=[];spawnQ=[];
-  score=0;lives=3;elapsed=0;spawnT=.6;slowT=0;shakeT=0;flashT=0;dyingT=0;posted=false;
-  bonusT=0;freezeT=0;finale=false;
+  score=0;lives=3;elapsed=0;spawnT=.6;shakeT=0;flashT=0;dyingT=0;posted=false;
+  bonusT=0;freezeT=0;finale=false;chain=0;frenzyT=0;frenzyQ=0;
   pressed=false;swipeN=0;swipeIdle=0;
 }
 function startGame(){
@@ -126,43 +129,97 @@ function startGame(){
 }
 function diff(){return Math.min(1,elapsed/ROUND)}
 function remaining(){return ROUND+bonusT-elapsed}
+function multiplier(){for(var m=CHAIN.length;m>1;m--)if(chain>=CHAIN[m-1])return m;return 1}
+function isBad(t){return t===TYPES.BURNT||t===TYPES.COAL}
+function goodKind(){return Math.floor(Math.random()*4)}
+function badKind(){return Math.random()<.6?TYPES.BURNT:TYPES.COAL}
 function pickKind(){
-  var d=diff(),r=Math.random();
-  if(elapsed>5){
-    var badShare=lerp(.1,.3,d)*(finale?.5:1);
-    if(r<badShare)return Math.random()<.6?TYPES.BURNT:TYPES.COAL;
-  }
-  if(elapsed>8&&Math.random()<.04)return TYPES.GOLD;
-  if(elapsed>12&&Math.random()<.035)return TYPES.ICE;
-  if(elapsed>15&&Math.random()<.07)return TYPES.BIG;
-  return Math.floor(Math.random()*4);
+  var d=diff();
+  if(elapsed>3&&Math.random()<lerp(.16,.32,d)*(finale?.6:1))return badKind();
+  if(elapsed>6&&Math.random()<.035)return TYPES.GOLD;
+  if(elapsed>10&&Math.random()<.03)return TYPES.ICE;
+  if(elapsed>8&&Math.random()<.08)return TYPES.BIG;
+  return goodKind();
 }
-function spawnOne(forceKind){
-  var kind=forceKind!=null?forceKind:pickKind();
-  var x0=rnd(.1,.9)*W,tx=rnd(.2,.8)*W;
-  var peak=rnd(.5,.85)*H*lerp(1,1.05,diff());
-  var vy=-Math.sqrt(2*G*peak);
-  var T=2*(-vy)/G;
-  var c={type:kind,sub:Math.floor(Math.random()*3),x:x0,y:H+R,vx:(tx-x0)/T,vy:vy,rot:rnd(0,6.28),vr:rnd(-4,4),r:R*(kind===TYPES.GOLD?1.1:kind===TYPES.BIG?1.6:1),age:0,hp:kind===TYPES.BIG?2:1,cool:0};
-  cookies.push(c);
+/* o: {kind, x0, tx, peak} for a throw from below, or {side: -1 | 1} for a throw from the left or right edge.
+   Everything left out is chosen at random. */
+function spawnOne(o){
+  o=o||{};
+  var kind=o.kind!=null?o.kind:pickKind();
+  var r=R*(kind===TYPES.GOLD?1.1:kind===TYPES.BIG?1.6:1),x,y,vx,vy,T;
+  if(o.side){
+    vy=-Math.sqrt(2*G*rnd(.18,.38)*H);y=rnd(.5,.78)*H;
+    T=(-vy+Math.sqrt(vy*vy+2*G*(H-y)))/G;   // time until it reaches the bottom edge
+    x=o.side<0?-r:W+r;vx=-o.side*rnd(.75,1.05)*W/T;
+  }else{
+    x=o.x0!=null?o.x0:rnd(.1,.9)*W;
+    var tx=o.tx!=null?o.tx:rnd(.2,.8)*W;
+    vy=-Math.sqrt(2*G*(o.peak||rnd(.5,.85))*H);T=2*(-vy)/G;
+    y=H+R;vx=(tx-x)/T;
+  }
+  cookies.push({type:kind,sub:Math.floor(Math.random()*3),x:x,y:y,vx:vx,vy:vy,rot:rnd(0,6.28),vr:rnd(-4,4),r:r,age:0,hp:kind===TYPES.BIG?2:1,cool:0,free:!!o.free});
+}
+function queue(t,o){o.t=t;spawnQ.push(o)}
+/* Queues one wave and returns the extra pause after it. */
+function wave(){
+  var d=diff(),r=Math.random(),n,i,u;
+  if(elapsed<3){queue(0,{});return 0;}   // warm-up: single cookies
+  if(r<.3){   // fan: a row thrown at once
+    n=3+Math.floor(Math.random()*(2+2*d));
+    var left=rnd(.1,.3),span=rnd(.4,.6),pk=rnd(.55,.8),flip=Math.random()<.5;
+    for(i=0;i<n;i++){u=left+span*i/(n-1);if(flip)u=1-u;queue(i*.04,{x0:u*W,tx:(u+rnd(-.05,.05))*W,peak:pk+rnd(-.04,.04)});}
+    return .5;
+  }
+  if(r<.55){   // stream: one after the other along the same arc
+    n=4+Math.floor(Math.random()*(2+3*d));
+    var fromLeft=Math.random()<.5,a=fromLeft?rnd(.08,.25):rnd(.75,.92),b=fromLeft?rnd(.6,.9):rnd(.1,.4),pk2=rnd(.6,.8);
+    for(i=0;i<n;i++)queue(i*.14,{x0:a*W,tx:b*W,peak:pk2});
+    return .6;
+  }
+  if(r<.75){   // crossfire from both edges
+    n=4+2*Math.floor(Math.random()*(2+2*d));
+    for(i=0;i<n;i++)queue(i*.12,{side:i%2?1:-1});
+    return .6;
+  }
+  if(r<.9&&elapsed>8){   // trap: a bad piece between two cookies
+    u=rnd(.3,.7);var pk3=rnd(.55,.75),gap=R*2.6;
+    queue(0,{x0:u*W-gap,tx:u*W-gap,peak:pk3,kind:goodKind()});
+    queue(0,{x0:u*W,tx:u*W,peak:pk3,kind:badKind()});
+    queue(0,{x0:u*W+gap,tx:u*W+gap,peak:pk3,kind:goodKind()});
+    return .3;
+  }
+  n=1+Math.floor(Math.random()*2);
+  for(i=0;i<n;i++)queue(i*.2,{});
+  return 0;
 }
 function updateSpawn(dt){
-  var d=diff();
-  spawnT-=dt;
-  if(spawnT<=0){
-    var n=1;
-    if(Math.random()<.12+.28*d)n=2+Math.floor(Math.random()*3);
-    for(var i=0;i<n;i++)spawnQ.push(i*.13);
-    spawnT=lerp(1.5,.6,d)*rnd(.8,1.25)+(n>1?.5:0);
+  if(frenzyT>0){   // frenzy: nothing but good cookies, from both edges
+    frenzyQ-=dt;
+    if(frenzyQ<=0){frenzyQ=.1;spawnOne({side:Math.random()<.5?1:-1,kind:goodKind(),free:true});}
+  }else{
+    spawnT-=dt;
+    if(spawnT<=0)spawnT=lerp(1.25,.6,diff())*rnd(.85,1.2)+wave();
   }
   for(var i=spawnQ.length-1;i>=0;i--){
-    spawnQ[i]-=dt;
-    if(spawnQ[i]<=0){spawnQ.splice(i,1);spawnOne();}
+    spawnQ[i].t-=dt;
+    if(spawnQ[i].t<=0)spawnOne(spawnQ.splice(i,1)[0]);
   }
+}
+/* A cookie was sliced: count it towards the multiplier and return the multiplier that applies. */
+function chainUp(x,y){
+  var m=multiplier();chain++;
+  if(multiplier()>m)addPop(x,y-60*S,'Multiplier x'+multiplier()+'!','#f4c542',1.3);
+  return m;
+}
+/* A cookie fell without being sliced: the multiplier drops one level. */
+function chainDown(){
+  var m=multiplier();
+  if(m>1)addPop(W/2,H*.82,'Dropped! Multiplier x'+(m-1),'#ff8b95',1.1);
+  chain=m>1?CHAIN[m-2]:0;
 }
 
 function sliceCookie(c,ang){
-  var bad=c.type===TYPES.BURNT||c.type===TYPES.COAL;
+  var bad=isBad(c.type);
   var cut=ang-c.rot,nx=-Math.sin(ang),ny=Math.cos(ang);
   for(var s=-1;s<=1;s+=2){
     halves.push({type:c.type,sub:c.sub,x:c.x,y:c.y,vx:c.vx*.6+nx*s*rnd(90,170)*S,vy:c.vy*.6+ny*s*rnd(90,170)*S-60*S,rot:c.rot,vr:c.vr+s*rnd(1,4),r:c.r,cut:cut,side:s,life:2.5,age:c.age});
@@ -173,22 +230,26 @@ function sliceCookie(c,ang){
     parts.push({x:c.x,y:c.y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-80*S,r:rnd(1.5,4)*S,life:rnd(.5,1),max:1,col:cols[i%cols.length],g:700*S});
   }
   if(bad){
-    lives--;shakeT=.35;flashT=.4;swipeN=0;
-    addPop(c.x,c.y,'-1 Herz','#ff8b95');
+    lives--;shakeT=.35;flashT=.4;swipeN=0;chain=0;
+    addPop(c.x,c.y,'-1 heart','#ff8b95');
     if(lives<=0)gameOver();
   }else{
-    var pts=c.type===TYPES.GOLD?5:c.type===TYPES.BIG?3:1;
+    var pts=(c.type===TYPES.GOLD?5:c.type===TYPES.BIG?3:1)*chainUp(c.x,c.y);
     score+=pts;swipeN++;swipeIdle=0;swipeX=c.x;swipeY=c.y;
     addPop(c.x,c.y,'+'+pts,c.type===TYPES.GOLD?'#f4c542':'#f7fbff');
-    if(c.type===TYPES.GOLD){slowT=2.5;for(var k=0;k<14;k++){var aa=rnd(0,6.28);parts.push({x:c.x,y:c.y,vx:Math.cos(aa)*200*S,vy:Math.sin(aa)*200*S,r:3*S,life:.8,max:.8,col:'#fff6c0',g:0});}}
-    if(c.type===TYPES.ICE){freezeT=FREEZE_TIME;addPop(c.x,c.y-34*S,'Zeit eingefroren!','#a9d6ff',1.2);}
+    if(c.type===TYPES.GOLD){
+      frenzyT=FRENZY_TIME;frenzyQ=0;addPop(W/2,H*.3,'Cookie frenzy!','#f4c542',1.7);
+      for(var k=0;k<14;k++){var aa=rnd(0,6.28);parts.push({x:c.x,y:c.y,vx:Math.cos(aa)*200*S,vy:Math.sin(aa)*200*S,r:3*S,life:.8,max:.8,col:'#fff6c0',g:0});}
+    }
+    if(c.type===TYPES.ICE){freezeT=FREEZE_TIME;addPop(c.x,c.y-34*S,'Clock frozen!','#a9d6ff',1.2);}
   }
 }
-/* First cut into a giant Guetzli: it cracks, the second cut slices it. */
+/* First cut into a giant cookie: it cracks, the second cut slices it. */
 function crackCookie(c){
   c.hp--;c.cool=.18;
-  score++;swipeN++;swipeIdle=0;swipeX=c.x;swipeY=c.y;
-  addPop(c.x,c.y,'+1','#f7fbff');
+  var pts=chainUp(c.x,c.y);
+  score+=pts;swipeN++;swipeIdle=0;swipeX=c.x;swipeY=c.y;
+  addPop(c.x,c.y,'+'+pts,'#f7fbff');
   var cols=CRUMB[c.type];
   for(var i=0;i<8;i++){
     var a=rnd(0,6.28),sp=rnd(60,220)*S;
@@ -198,8 +259,9 @@ function crackCookie(c){
 function addPop(x,y,t,col,size){pops.push({x:x,y:y,t:t,col:col,life:.9,max:.9,size:size||1})}
 function endSwipe(){
   if(swipeN>=3){
-    var bonus=swipeN;score+=bonus;bonusT+=COMBO_TIME;
-    addPop(Math.max(120,Math.min(W-120,swipeX)),Math.max(60,swipeY-40*S),'Combo x'+swipeN+'!  +'+bonus+'  +'+COMBO_TIME+' s','#f4c542',1.5);
+    var bonus=swipeN*multiplier(),more=bonusT<BONUS_CAP;score+=bonus;
+    if(more)bonusT=Math.min(BONUS_CAP,bonusT+COMBO_TIME);
+    addPop(Math.max(120,Math.min(W-120,swipeX)),Math.max(60,swipeY-40*S),'Combo x'+swipeN+'!  +'+bonus+(more?'  +'+COMBO_TIME+' s':''),'#f4c542',1.5);
   }
   swipeN=0;
 }
@@ -211,7 +273,7 @@ function gameOver(){
 function showOver(){
   state='over';
   var nb=score>best;if(nb)best=score;
-  finalScore.textContent=score;finalBest.textContent=best;newBest.textContent=nb&&score>0?'(neu!)':'';
+  finalScore.textContent=score;finalBest.textContent=best;newBest.textContent=nb&&score>0?'(new!)':'';
   overOv.hidden=false;againBtn.focus({preventScroll:true});
 }
 
@@ -222,8 +284,7 @@ function doSegment(x0,y0,x1,y1){
   if(x0===x1&&y0===y1)ang=rnd(0,6.28);
   for(var i=cookies.length-1;i>=0;i--){
     var c=cookies[i];
-    var bad=c.type===TYPES.BURNT||c.type===TYPES.COAL;
-    var hr=c.r*(bad?.85:1.1);
+    var hr=c.r*(isBad(c.type)?.95:1.1);
     if(segCircle(x0,y0,x1,y1,c.x,c.y,hr)){
       if(c.cool>0)continue;
       if(c.hp>1){crackCookie(c);continue;}
@@ -271,24 +332,26 @@ function update(rdt){
   // snow always
   for(var i=0;i<snow.length;i++){var f=snow[i];f.y+=f.v*rdt*S;f.p+=rdt;f.x+=Math.sin(f.p)*8*rdt;if(f.y>H+5){f.y=-5;f.x=Math.random()*W}}
   if(state==='menu'||state==='over'){return;}
-  var dt=rdt*(slowT>0?.4:1);
-  if(slowT>0)slowT-=rdt;
+  var dt=rdt;
   if(shakeT>0)shakeT-=rdt;if(flashT>0)flashT-=rdt;
   if(state==='play'){
-    // the clock runs on game time, so slow motion does not eat into the round; the ice Guetzli stops it
-    if(freezeT>0)freezeT-=rdt;else elapsed+=dt;
-    if(!finale&&remaining()<=FINALE_AT){finale=true;addPop(W/2,H*.3,'Schlussspurt!','#f4c542',1.7);}
-    updateSpawn(dt*lerp(1,1.15,diff())*(finale?1.8:1));
+    if(freezeT>0)freezeT-=rdt;else elapsed+=dt;   // the ice cookie stops the clock
+    if(frenzyT>0)frenzyT-=rdt;
+    if(!finale&&remaining()<=FINALE_AT){finale=true;addPop(W/2,H*.3,'Final sprint!','#f4c542',1.7);}
+    updateSpawn(dt*(finale?1.6:1));
     if(swipeN>0){swipeIdle+=rdt;if(!pressed||swipeIdle>COMBO_GAP)endSwipe();}
     if(remaining()<=0){endSwipe();gameOver();}
   }else if(state==='dying'){
     dyingT+=rdt;if(dyingT>1){showOver();}
   }
-  var sp=lerp(1,1.12,diff());
+  var sp=lerp(1.08,1.4,diff());
   for(var i=cookies.length-1;i>=0;i--){
     var c=cookies[i];c.age+=dt;if(c.cool>0)c.cool-=rdt;
     c.vy+=G*dt*sp*sp;c.x+=c.vx*dt*sp;c.y+=c.vy*dt*sp;c.rot+=c.vr*dt;
-    if(c.y>H+c.r*1.5&&c.vy>0)cookies.splice(i,1);
+    if(c.y>H+c.r*1.5&&c.vy>0){
+      cookies.splice(i,1);
+      if(state==='play'&&!c.free&&!isBad(c.type))chainDown();
+    }
   }
   for(var i=halves.length-1;i>=0;i--){
     var h=halves[i];h.vy+=G*dt;h.x+=h.vx*dt;h.y+=h.vy*dt;h.rot+=h.vr*dt;h.life-=rdt;
@@ -437,7 +500,7 @@ function draw(){
   ctx.globalAlpha=1;
   ctx.save();
   if(shakeT>0){var m=shakeT*30*S;ctx.translate(rnd(-m,m)*.5,rnd(-m,m)*.5);}
-  if(slowT>0){ctx.fillStyle='rgba(244,197,66,.07)';ctx.fillRect(0,0,W,H);}
+  if(frenzyT>0){ctx.fillStyle='rgba(244,197,66,.07)';ctx.fillRect(0,0,W,H);}
   // cookies with soft shadow
   for(i=0;i<cookies.length;i++){
     var c=cookies[i];
@@ -471,8 +534,9 @@ function draw(){
     ctx.font='800 '+Math.round(34*S)+'px "Segoe UI",system-ui,sans-serif';
     ctx.fillStyle='#f7fbff';
     ctx.fillText(String(score),14*S+4,10*S);
+    if(multiplier()>1){var sw=ctx.measureText(String(score)).width;ctx.font='800 '+fs+'px "Segoe UI",system-ui,sans-serif';ctx.fillStyle='#f4c542';ctx.fillText('x'+multiplier(),14*S+14+sw,18*S);}
     ctx.textAlign='right';ctx.font='600 '+fs*.8+'px "Segoe UI",system-ui,sans-serif';ctx.fillStyle='#a9d6ff';
-    ctx.fillText('Bestwert '+Math.max(best,score),W-14*S-4,14*S);
+    ctx.fillText('Best '+Math.max(best,score),W-14*S-4,14*S);
     for(i=0;i<3;i++)heart(14*S+14*S+i*30*S,10*S+34*S+28*S,11*S,i<lives);
     var left=Math.max(0,Math.ceil(remaining()));
     ctx.textAlign='center';ctx.textBaseline='top';ctx.font='800 '+Math.round(26*S)+'px "Segoe UI",system-ui,sans-serif';
